@@ -1,40 +1,26 @@
 @import "tailwindcss";
 
-/**
- * Paleta de marca. Base neutra cálida; el color lo pone el producto.
- *
- * Sin dark mode a propósito: la identidad es crema y tierra, y el color real
- * de cada jugo pierde contra un fondo negro.
- */
-@theme {
-  /* Neutros cálidos — el lienzo */
-  --color-crema: #faf6ef;
-  --color-arena: #ece0cd;
-  --color-arena-oscura: #d8c7ac;
-  --color-tierra: #6f5c46;
-  --color-tinta: #241f1a;
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
 
-  /* Color real de cada producto — el protagonista */
-  --color-jugo-verde: #5b7a35;
-  --color-jugo-naranja: #e07a1f;
-  --color-jugo-rojo: #91223f;
-  --color-shot-curcuma: #dfa018;
-  --color-shot-jengibre: #e8c14a;
-
-  /* Semánticos: los que usan los componentes */
-  --color-background: var(--color-crema);
-  --color-foreground: var(--color-tinta);
-  --color-muted: var(--color-tierra);
-  --color-border: var(--color-arena-oscura);
-
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  /* Titulares: se define el slot ahora, la fuente entra en layout.tsx */
-  --font-display: var(--font-display), Georgia, serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
 }
 
 body {
-  background: var(--color-background);
-  color: var(--color-foreground);
-  font-family: var(--font-sans);
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
 }
