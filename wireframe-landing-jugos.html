@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wireframe — Landing Jugos Cold Press</title>
+<style>
+  :root {
+    --line: #111;
+    --muted: #888;
+    --bg: #fafafa;
+    --box: #fff;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, "Helvetica Neue", Arial, sans-serif;
+    background: var(--bg);
+    color: var(--line);
+  }
+  .page {
+    max-width: 900px;
+    margin: 0 auto;
+    background: var(--box);
+    border-left: 1px dashed var(--muted);
+    border-right: 1px dashed var(--muted);
+  }
+  .section {
+    border-bottom: 1px dashed var(--muted);
+    padding: 28px 32px;
+    position: relative;
+  }
+  .tag {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    background: #fff;
+    padding: 2px 6px;
+    border: 1px solid var(--muted);
+    border-radius: 3px;
+  }
+  .note {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 6px;
+    font-style: italic;
+  }
+  .placeholder-box {
+    border: 1px dashed var(--muted);
+    background: repeating-linear-gradient(
+      45deg, #f1f1f1, #f1f1f1 6px, #fafafa 6px, #fafafa 12px
+    );
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+    font-size: 12px;
+    text-align: center;
+  }
+
+  /* HERO */
+  .hero {
+    padding: 90px 32px 70px;
+    text-align: center;
+  }
+  .hero .placeholder-box {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    height: 100%;
+  }
+  .hero-content { position: relative; z-index: 1; }
+  .hero-flag {
+    display: inline-block;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    padding: 4px 12px;
+    margin-bottom: 20px;
+  }
+  .hero h1 {
+    font-size: 44px;
+    line-height: 1.05;
+    margin: 0 0 8px;
+    letter-spacing: -0.01em;
+  }
+  .hero h1 .big {
+    display: block;
+    font-size: 60px;
+    font-weight: 800;
+  }
+  .hero p.sub {
+    color: var(--muted);
+    margin: 16px 0 28px;
+  }
+  .cta {
+    display: inline-block;
+    border: 1px solid var(--line);
+    padding: 12px 26px;
+    font-size: 13px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  /* PILLARS */
+  .pillars {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    margin-top: 16px;
+  }
+  .pillar { text-align: center; }
+  .pillar .icon {
+    width: 44px; height: 44px;
+    border: 1px dashed var(--muted);
+    border-radius: 50%;
+    margin: 0 auto 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; color: var(--muted);
+  }
+  .pillar h3 { font-size: 14px; margin: 0 0 6px; letter-spacing: 0.02em; }
+  .pillar p { font-size: 12px; color: var(--muted); margin: 0; line-height: 1.5; }
+  .story {
+    max-width: 560px;
+    margin: 24px auto 0;
+    font-size: 14px;
+    line-height: 1.7;
+    text-align: center;
+    color: #333;
+  }
+
+  /* PRODUCTS */
+  .products-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 20px;
+  }
+  .products-head h2 { font-size: 22px; margin: 0; }
+  .view-all {
+    font-size: 12px;
+    text-decoration: underline;
+    color: var(--line);
+  }
+  .carousel {
+    display: flex;
+    gap: 16px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+  }
+  .product-card {
+    flex: 0 0 300px;
+    display: flex;
+    border: 1px solid var(--line);
+    height: 190px;
+  }
+  .product-photo {
+    flex: 0 0 45%;
+    color: var(--muted);
+    font-size: 11px;
+  }
+  .product-info {
+    flex: 1;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .product-info h4 { margin: 0 0 6px; font-size: 15px; }
+  .product-info p { margin: 0 0 12px; font-size: 11px; color: var(--muted); line-height: 1.5; }
+  .product-info .buy { font-size: 12px; text-decoration: underline; align-self: flex-start; }
+  .carousel-arrows {
+    text-align: center;
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 8px;
+  }
+
+  /* BENEFITS */
+  .benefits-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 18px;
+    margin-top: 16px;
+  }
+  .benefit { text-align: left; border-top: 2px solid var(--line); padding-top: 10px; }
+  .benefit .stat { font-size: 20px; font-weight: 700; }
+  .benefit p { font-size: 12px; color: var(--muted); margin: 4px 0 0; line-height: 1.5; }
+
+  /* ABOUT */
+  .about {
+    display: flex;
+    gap: 28px;
+    align-items: center;
+  }
+  .about .placeholder-box {
+    flex: 0 0 40%;
+    height: 220px;
+  }
+  .about-copy { flex: 1; }
+  .about-copy h2 { font-size: 20px; margin: 0 0 12px; }
+  .about-copy p { font-size: 13px; line-height: 1.7; color: #333; margin: 0; }
+
+  /* FOOTER */
+  .footer {
+    padding: 32px;
+    text-align: center;
+  }
+  .footer-cols {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    font-size: 12px;
+    color: var(--muted);
+    text-align: left;
+    margin-top: 16px;
+  }
+  .footer-cols strong { display: block; color: var(--line); margin-bottom: 6px; font-size: 12px; }
+
+  h5.section-label {
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0 0 4px;
+  }
+
+  @media (max-width: 640px) {
+    .pillars, .benefits-grid { grid-template-columns: 1fr; }
+    .about { flex-direction: column; }
+    .footer-cols { grid-template-columns: 1fr; }
+    .hero h1 .big { font-size: 40px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- 1. HERO -->
+  <section class="section hero" style="position:relative;">
+    <span class="tag">1 · Hero</span>
+    <div class="placeholder-box" style="opacity:0.5;">[ foto/video · prensado en frío — botellas + chorro de jugo ]</div>
+    <div class="hero-content">
+      <div class="hero-flag">🇺🇾 100% uruguayo</div>
+      <h1>
+        <span class="big">ORGÁNICO.</span>
+        Prensado en frío.
+      </h1>
+      <p class="sub">De la chacra a tu botella — sin pasteurizar, sin agregados.</p>
+      <div class="cta">Ver productos →</div>
+    </div>
+  </section>
+
+  <!-- 2. INTRO DE MARCA -->
+  <section class="section">
+    <span class="tag">2 · Intro de marca</span>
+    <h5 class="section-label">Por qué existimos</h5>
+    <div class="pillars">
+      <div class="pillar">
+        <div class="icon">MGAP</div>
+        <h3>Orgánico certificado</h3>
+        <p>Ingredientes de productores uruguayos certificados por el MGAP.</p>
+      </div>
+      <div class="pillar">
+        <div class="icon">🍾</div>
+        <h3>Cero plástico</h3>
+        <p>Envasamos en vidrio retornable. No generamos basura plástica.</p>
+      </div>
+      <div class="pillar">
+        <div class="icon">♻️</div>
+        <h3>Cero residuo</h3>
+        <p>Todo lo que el jugo genera como descarte vuelve a la tierra como compost.</p>
+      </div>
+    </div>
+    <p class="story">"Todo empieza en el campo: elegimos productores locales certificados orgánicos, porque lo que le hace bien a tu cuerpo también le tiene que hacer bien a la tierra. Prensamos en frío para no perder nada en el camino, embotellamos en vidrio para no dejar nada atrás, y compostamos cada resto de fruta y verdura. Un jugo, cero desperdicio."</p>
+  </section>
+
+  <!-- 3. PRODUCTOS -->
+  <section class="section">
+    <span class="tag">3 · Productos</span>
+    <div class="products-head">
+      <h2>Productos</h2>
+      <span class="view-all">Ver todos →</span>
+    </div>
+    <div class="carousel">
+      <div class="product-card">
+        <div class="product-photo placeholder-box">foto<br>(fondo = color<br>real del jugo)</div>
+        <div class="product-info">
+          <h4>Jugo Verde</h4>
+          <p>Pepino, manzana, espinaca, apio, limón, kale, jengibre.</p>
+          <span class="buy">Comprar →</span>
+        </div>
+      </div>
+      <div class="product-card">
+        <div class="product-photo placeholder-box">foto</div>
+        <div class="product-info">
+          <h4>Jugo Cítrico</h4>
+          <p>Naranja, pomelo, zanahoria, cúrcuma.</p>
+          <span class="buy">Comprar →</span>
+        </div>
+      </div>
+      <div class="product-card">
+        <div class="product-photo placeholder-box">foto</div>
+        <div class="product-info">
+          <h4>Shot Jengibre</h4>
+          <p>Jengibre, limón, cayena.</p>
+          <span class="buy">Comprar →</span>
+        </div>
+      </div>
+    </div>
+    <div class="carousel-arrows">← scroll horizontal →</div>
+  </section>
+
+  <!-- 4. BENEFICIOS -->
+  <section class="section">
+    <span class="tag">4 · Beneficios</span>
+    <h5 class="section-label">Por qué orgánico, por qué prensado en frío</h5>
+    <div class="benefits-grid">
+      <div class="benefit">
+        <div class="stat">+</div>
+        <p>Más nutrientes que un jugo pasteurizado</p>
+      </div>
+      <div class="benefit">
+        <div class="stat">0g</div>
+        <p>Sin azúcar agregada</p>
+      </div>
+      <div class="benefit">
+        <div class="stat">✓</div>
+        <p>Enzimas vivas, ingredientes crudos</p>
+      </div>
+      <div class="benefit">
+        <div class="stat">100%</div>
+        <p>Fruta y verdura, nada más</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. SOBRE NOSOTROS -->
+  <section class="section">
+    <span class="tag">5 · Sobre nosotros</span>
+    <div class="about">
+      <div class="placeholder-box">foto · chacra / proceso de prensado</div>
+      <div class="about-copy">
+        <h2>Sobre nosotros</h2>
+        <p>[Párrafo corto contando el origen de la marca: por qué empezaste, de dónde sale la idea, quién está detrás. Tono cercano y personal — esta es la sección donde alguien que ya se enganchó quiere conocerte a vos.]</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <section class="footer">
+    <span class="tag">Footer</span>
+    <div class="placeholder-box" style="height:36px; margin-top:20px;">[ newsletter — email input + botón ]</div>
+    <div class="footer-cols">
+      <div><strong>Navegación</strong>Productos · Sobre nosotros · Contacto</div>
+      <div><strong>Redes</strong>Instagram · WhatsApp</div>
+      <div><strong>Entrega</strong>Zona de reparto</div>
+    </div>
+  </section>
+
+</div>
+
+</body>
+</html>
