@@ -214,4 +214,47 @@ export const PRODUCTOS: readonly Producto[] = [
     varianteDefaultId: "unico",
     destacado: true,
   },
+
+  // Packs: envoltorio sobre variantes que ya existen. El precio del pack se
+  // escribe; el ahorro contra comprar suelto se calcula (ver queries.ts).
+  //
+  // La rotación no es estética: la espinaca del Verde es alta en oxalatos, así
+  // que va un solo día y nunca pegado a otro día de carga alta. Ver
+  // docs/beneficios-evidencia.md.
+  {
+    slug: "pack-lunes-a-viernes",
+    nombre: "Lunes a Viernes",
+    categoria: "packs",
+    dias: 5,
+    tagline: "Cinco días, una botella por día.",
+    descripcion:
+      "Un jugo por día, de lunes a viernes, rotando los tres. Va con el desayuno: no reemplaza comidas ni es una limpieza. Es la forma de tomar verdura todos los días sin pensarlo.",
+    colorToken: "--color-pack-semana",
+    contenido: [
+      { sku: "JR-330", cantidad: 2 },
+      { sku: "JN-330", cantidad: 2 },
+      { sku: "JV-330", cantidad: 1 },
+    ],
+    imagenes: [
+      {
+        src: "/productos/pack-lunes-a-viernes.jpg",
+        alt: "Cinco botellas de vidrio de 330 ml en una caja",
+        width: 1200,
+        height: 1600,
+      },
+    ],
+    variantes: [
+      {
+        id: "unico",
+        nombre: "5 botellas",
+        volumenMl: 1650,
+        precio: 110000,
+        envase: 10000,
+        sku: "PACK-5D",
+        disponible: true,
+      },
+    ],
+    varianteDefaultId: "unico",
+    destacado: true,
+  },
 ];

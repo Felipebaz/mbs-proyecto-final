@@ -7,7 +7,7 @@
  */
 
 /** Agregar una categoría acá propaga el tipo a todo el catálogo. */
-export const CATEGORIAS = ["jugos", "shots"] as const;
+export const CATEGORIAS = ["jugos", "shots", "packs"] as const;
 export type CategoriaId = (typeof CATEGORIAS)[number];
 
 export interface Categoria {
@@ -81,10 +81,34 @@ export interface Shot extends ProductoBase {
   dosisMl: number;
 }
 
-export type Producto = Jugo | Shot;
+/**
+ * Un pack no tiene receta propia: es un envoltorio sobre variantes que ya
+ * existen. Por eso `contenido` en vez de `ingredientes`, y por eso el ahorro
+ * se calcula contra el catálogo en vez de escribirse a mano.
+ */
+export interface Pack extends ProductoBase {
+  categoria: "packs";
+  /** Días que cubre, a una botella por día. */
+  dias: number;
+  /** Qué trae adentro, por SKU de variante. */
+  contenido: readonly LineaPack[];
+}
+
+export interface LineaPack {
+  sku: Variante["sku"];
+  cantidad: number;
+}
+
+export type Producto = Jugo | Shot | Pack;
 
 export const esJugo = (p: Producto): p is Jugo => p.categoria === "jugos";
 export const esShot = (p: Producto): p is Shot => p.categoria === "shots";
+export const esPack = (p: Producto): p is Pack => p.categoria === "packs";
+
+/** Botellas que trae el pack. Suma las cantidades, no las líneas. */
+export function botellasPorPack(pack: Pack): number {
+  return pack.contenido.reduce((total, l) => total + l.cantidad, 0);
+}
 
 export function varianteDefault(p: Producto): Variante {
   return (

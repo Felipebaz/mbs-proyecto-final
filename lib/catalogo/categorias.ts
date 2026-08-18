@@ -16,4 +16,12 @@ export const CATEGORIAS_DATA: Record<CategoriaId, Categoria> = {
     orden: 2,
     activa: true,
   },
+  packs: {
+    id: "packs",
+    nombre: "Packs",
+    descripcion:
+      "Una botella por día, cinco días. Acompañan el desayuno, no lo reemplazan.",
+    orden: 3,
+    activa: true,
+  },
 };
