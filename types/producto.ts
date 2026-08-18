@@ -32,7 +32,10 @@ export interface Variante {
   /** Etiqueta del selector de tamaño: "330 ml". */
   nombre: string;
   volumenMl: number;
+  /** Contenido, con IVA. Sin el envase. */
   precio: PrecioUYU;
+  /** Botella de vidrio. Depende del envase físico, no del producto. */
+  envase: PrecioUYU;
   sku: string;
   disponible: boolean;
 }
@@ -74,7 +77,8 @@ export interface Shot extends ProductoBase {
   categoria: "shots";
   ingredientes: string[];
   beneficios: string[];
-  dosisSugerida: string;
+  /** Trago sugerido. Las dosis por botella se calculan, no se escriben. */
+  dosisMl: number;
 }
 
 export type Producto = Jugo | Shot;
@@ -88,6 +92,21 @@ export function varianteDefault(p: Producto): Variante {
   );
 }
 
+/** Lo que efectivamente se cobra: contenido + envase. */
+export function precioTotal(v: Variante): PrecioUYU {
+  return v.precio + v.envase;
+}
+
+/** "Rinde 6 dosis". Se recalcula solo si cambia la botella o el trago. */
+export function dosisPorBotella(shot: Shot, v: Variante): number {
+  return Math.floor(v.volumenMl / shot.dosisMl);
+}
+
+/** El argumento de venta: cuánto sale cada trago, envase incluido. */
+export function precioPorDosis(shot: Shot, v: Variante): PrecioUYU {
+  return Math.round(precioTotal(v) / dosisPorBotella(shot, v));
+}
+
 export function precioDesde(p: Producto): PrecioUYU {
-  return Math.min(...p.variantes.map((v) => v.precio));
+  return Math.min(...p.variantes.map(precioTotal));
 }

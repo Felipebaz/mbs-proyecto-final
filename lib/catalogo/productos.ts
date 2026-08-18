@@ -6,8 +6,12 @@ import type { Producto } from "@/types/producto";
  * Nadie importa este archivo directo: todo pasa por queries.ts. El día que
  * el catálogo se mude a un CMS, cambia este archivo y nada más.
  *
- * PRECIOS PROVISORIOS: en centésimos de peso uruguayo (29000 = $290).
+ * Precios reales, en centésimos de peso uruguayo (25000 = $250). Incluyen IVA.
+ * `precio` es el contenido; `envase` es la botella y se cobra siempre aparte.
+ *
  * IMÁGENES PROVISORIAS: las rutas de /public/productos/ todavía no existen.
+ * ENVASE TRANSITORIO: el shot va en botella de 330 ml hasta que haya una
+ * botella de shot propia. Cambiar volumenMl recalcula solo las dosis.
  */
 
 export const PRODUCTOS: readonly Producto[] = [
@@ -47,7 +51,8 @@ export const PRODUCTOS: readonly Producto[] = [
         id: "330ml",
         nombre: "330 ml",
         volumenMl: 330,
-        precio: 29000,
+        precio: 25000,
+        envase: 2000,
         sku: "JV-330",
         disponible: true,
       },
@@ -55,7 +60,8 @@ export const PRODUCTOS: readonly Producto[] = [
         id: "910ml",
         nombre: "910 ml",
         volumenMl: 910,
-        precio: 69000,
+        precio: 50000,
+        envase: 3000,
         sku: "JV-910",
         disponible: true,
       },
@@ -97,7 +103,8 @@ export const PRODUCTOS: readonly Producto[] = [
         id: "330ml",
         nombre: "330 ml",
         volumenMl: 330,
-        precio: 29000,
+        precio: 25000,
+        envase: 2000,
         sku: "JN-330",
         disponible: true,
       },
@@ -105,7 +112,8 @@ export const PRODUCTOS: readonly Producto[] = [
         id: "910ml",
         nombre: "910 ml",
         volumenMl: 910,
-        precio: 69000,
+        precio: 50000,
+        envase: 3000,
         sku: "JN-910",
         disponible: true,
       },
@@ -148,7 +156,8 @@ export const PRODUCTOS: readonly Producto[] = [
         id: "330ml",
         nombre: "330 ml",
         volumenMl: 330,
-        precio: 29000,
+        precio: 25000,
+        envase: 2000,
         sku: "JR-330",
         disponible: true,
       },
@@ -156,7 +165,8 @@ export const PRODUCTOS: readonly Producto[] = [
         id: "910ml",
         nombre: "910 ml",
         volumenMl: 910,
-        precio: 69000,
+        precio: 50000,
+        envase: 3000,
         sku: "JR-910",
         disponible: true,
       },
@@ -165,27 +175,27 @@ export const PRODUCTOS: readonly Producto[] = [
     destacado: true,
   },
 
-  // Shots: una sola variante cada uno. El selector de tamaño se oculta solo.
-  // NOMBRES Y RECETAS PROVISORIOS.
+  // Shot: una sola variante. El selector de tamaño se oculta solo.
+  // RECETA PROVISORIA.
   {
-    slug: "shot-curcuma-jengibre",
-    nombre: "Shot de Cúrcuma y Jengibre",
+    slug: "shot-jengibre-curcuma",
+    nombre: "Shot de Jengibre y Cúrcuma",
     categoria: "shots",
     tagline: "Un trago, todos los días.",
     descripcion:
-      "Cúrcuma y jengibre en crudo, cortados con naranja y limón. La pimienta negra no es sabor: la piperina multiplica la absorción de la curcumina.",
+      "Jengibre y cúrcuma en crudo, cortados con naranja y limón. La pimienta negra no es sabor: la piperina multiplica la absorción de la curcumina. Un trago por día, preferentemente en ayunas.",
     colorToken: "--color-shot-curcuma",
-    ingredientes: ["Cúrcuma", "Jengibre", "Limón", "Naranja", "Pimienta negra"],
+    ingredientes: ["Jengibre", "Cúrcuma", "Limón", "Naranja", "Pimienta negra"],
     beneficios: [
       "Piperina: sube la absorción de la curcumina",
       "Jengibre en crudo, sin calor",
-      "Dosis concentrada en 60 ml",
+      "Concentrado, sin diluir",
     ],
-    dosisSugerida: "1 por día, preferentemente en ayunas.",
+    dosisMl: 55,
     imagenes: [
       {
-        src: "/productos/shot-curcuma-jengibre.jpg",
-        alt: "Shot de cúrcuma y jengibre en botella de vidrio",
+        src: "/productos/shot-jengibre-curcuma.jpg",
+        alt: "Shot de jengibre y cúrcuma en botella de vidrio",
         width: 1200,
         height: 1600,
       },
@@ -193,86 +203,15 @@ export const PRODUCTOS: readonly Producto[] = [
     variantes: [
       {
         id: "unico",
-        nombre: "60 ml",
-        volumenMl: 60,
-        precio: 18000,
-        sku: "SH-CJ-60",
+        nombre: "330 ml",
+        volumenMl: 330,
+        precio: 35000,
+        envase: 2000,
+        sku: "SH-JC-330",
         disponible: true,
       },
     ],
     varianteDefaultId: "unico",
     destacado: true,
-  },
-  {
-    slug: "shot-jengibre-limon",
-    nombre: "Shot de Jengibre y Limón",
-    categoria: "shots",
-    tagline: "Directo, sin vueltas.",
-    descripcion:
-      "Jengibre prensado en frío con limón y un toque de naranja. Pica lo que tiene que picar.",
-    colorToken: "--color-shot-jengibre",
-    ingredientes: ["Jengibre", "Limón", "Naranja"],
-    beneficios: [
-      "Jengibre en crudo, sin pasteurizar",
-      "Vitamina C de cítrico uruguayo",
-      "Dosis concentrada en 60 ml",
-    ],
-    dosisSugerida: "1 por día, en ayunas o después de entrenar.",
-    imagenes: [
-      {
-        src: "/productos/shot-jengibre-limon.jpg",
-        alt: "Shot de jengibre y limón en botella de vidrio",
-        width: 1200,
-        height: 1600,
-      },
-    ],
-    variantes: [
-      {
-        id: "unico",
-        nombre: "60 ml",
-        volumenMl: 60,
-        precio: 18000,
-        sku: "SH-JL-60",
-        disponible: true,
-      },
-    ],
-    varianteDefaultId: "unico",
-    destacado: false,
-  },
-  {
-    slug: "shot-curcuma-naranja",
-    nombre: "Shot de Cúrcuma y Naranja",
-    categoria: "shots",
-    tagline: "El más amable de los tres.",
-    descripcion:
-      "Cúrcuma con naranja y limón, redondeado con pimienta negra. Menos picante, misma concentración.",
-    colorToken: "--color-shot-curcuma",
-    ingredientes: ["Cúrcuma", "Naranja", "Limón", "Pimienta negra"],
-    beneficios: [
-      "Piperina: sube la absorción de la curcumina",
-      "Entrada suave para quien no banca el jengibre",
-      "Dosis concentrada en 60 ml",
-    ],
-    dosisSugerida: "1 por día, preferentemente en ayunas.",
-    imagenes: [
-      {
-        src: "/productos/shot-curcuma-naranja.jpg",
-        alt: "Shot de cúrcuma y naranja en botella de vidrio",
-        width: 1200,
-        height: 1600,
-      },
-    ],
-    variantes: [
-      {
-        id: "unico",
-        nombre: "60 ml",
-        volumenMl: 60,
-        precio: 18000,
-        sku: "SH-CN-60",
-        disponible: true,
-      },
-    ],
-    varianteDefaultId: "unico",
-    destacado: false,
   },
 ];
