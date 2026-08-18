@@ -1,4 +1,4 @@
-import type { Ingrediente, Producto } from "@/types/producto";
+import type { Producto } from "@/types/producto";
 
 /**
  * Fuente de verdad del catálogo.
@@ -10,30 +10,6 @@ import type { Ingrediente, Producto } from "@/types/producto";
  * IMÁGENES PROVISORIAS: las rutas de /public/productos/ todavía no existen.
  */
 
-// Ingredientes reutilizados, para que el origen no se contradiga entre fichas.
-const uy = (nombre: string): Ingrediente => ({
-  nombre,
-  organico: true,
-  origen: "uruguay",
-});
-
-/** VERIFICAR ORIGEN con tus proveedores: puestos como importados por defecto. */
-const importado = (nombre: string): Ingrediente => ({
-  nombre,
-  organico: true,
-  origen: "importado",
-});
-
-const JENGIBRE = importado("Jengibre");
-const CURCUMA = importado("Cúrcuma");
-const PIMIENTA = importado("Pimienta negra");
-
-const LIMON = uy("Limón");
-const NARANJA = uy("Naranja");
-const MANZANA_VERDE = uy("Manzana verde");
-const PEPINO = uy("Pepino");
-const APIO = uy("Apio");
-
 export const PRODUCTOS: readonly Producto[] = [
   {
     slug: "jugo-verde",
@@ -44,14 +20,14 @@ export const PRODUCTOS: readonly Producto[] = [
       "Hoja, raíz y fruta prensadas en frío el mismo día. Sin pasteurizar, sin azúcar agregada, sin agua: lo que hay en la botella es lo que salió de la prensa.",
     colorToken: "--color-jugo-verde",
     ingredientes: [
-      PEPINO,
-      MANZANA_VERDE,
-      uy("Espinaca"),
-      APIO,
-      LIMON,
-      uy("Kale"),
-      uy("Brócoli"),
-      JENGIBRE,
+      "Pepino",
+      "Manzana verde",
+      "Espinaca",
+      "Apio",
+      "Limón",
+      "Kale",
+      "Brócoli",
+      "Jengibre",
     ],
     beneficios: [
       "Clorofila y hierro de hoja verde",
@@ -96,12 +72,12 @@ export const PRODUCTOS: readonly Producto[] = [
       "Naranja y zanahoria de productores uruguayos, con cúrcuma y jengibre para que no quede solo en dulce. Prensado en frío y embotellado en vidrio el mismo día.",
     colorToken: "--color-jugo-naranja",
     ingredientes: [
-      NARANJA,
-      uy("Zanahoria"),
-      LIMON,
-      CURCUMA,
-      JENGIBRE,
-      uy("Menta"),
+      "Naranja",
+      "Zanahoria",
+      "Limón",
+      "Cúrcuma",
+      "Jengibre",
+      "Menta",
     ],
     beneficios: [
       "Betacaroteno de zanahoria",
@@ -146,13 +122,13 @@ export const PRODUCTOS: readonly Producto[] = [
       "Remolacha prensada en frío con manzana verde, apio y cítrico. Denso, terroso y sin una gota de agua agregada.",
     colorToken: "--color-jugo-rojo",
     ingredientes: [
-      PEPINO,
-      uy("Remolacha"),
-      MANZANA_VERDE,
-      LIMON,
-      APIO,
-      JENGIBRE,
-      CURCUMA,
+      "Pepino",
+      "Remolacha",
+      "Manzana verde",
+      "Limón",
+      "Apio",
+      "Jengibre",
+      "Cúrcuma",
     ],
     beneficios: [
       "Nitratos naturales de remolacha",
@@ -199,7 +175,7 @@ export const PRODUCTOS: readonly Producto[] = [
     descripcion:
       "Cúrcuma y jengibre en crudo, cortados con naranja y limón. La pimienta negra no es sabor: la piperina multiplica la absorción de la curcumina.",
     colorToken: "--color-shot-curcuma",
-    ingredientes: [CURCUMA, JENGIBRE, LIMON, NARANJA, PIMIENTA],
+    ingredientes: ["Cúrcuma", "Jengibre", "Limón", "Naranja", "Pimienta negra"],
     beneficios: [
       "Piperina: sube la absorción de la curcumina",
       "Jengibre en crudo, sin calor",
@@ -235,7 +211,7 @@ export const PRODUCTOS: readonly Producto[] = [
     descripcion:
       "Jengibre prensado en frío con limón y un toque de naranja. Pica lo que tiene que picar.",
     colorToken: "--color-shot-jengibre",
-    ingredientes: [JENGIBRE, LIMON, NARANJA],
+    ingredientes: ["Jengibre", "Limón", "Naranja"],
     beneficios: [
       "Jengibre en crudo, sin pasteurizar",
       "Vitamina C de cítrico uruguayo",
@@ -271,7 +247,7 @@ export const PRODUCTOS: readonly Producto[] = [
     descripcion:
       "Cúrcuma con naranja y limón, redondeado con pimienta negra. Menos picante, misma concentración.",
     colorToken: "--color-shot-curcuma",
-    ingredientes: [CURCUMA, NARANJA, LIMON, PIMIENTA],
+    ingredientes: ["Cúrcuma", "Naranja", "Limón", "Pimienta negra"],
     beneficios: [
       "Piperina: sube la absorción de la curcumina",
       "Entrada suave para quien no banca el jengibre",

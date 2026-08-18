@@ -16,13 +16,4 @@ export const CATEGORIAS_DATA: Record<CategoriaId, Categoria> = {
     orden: 2,
     activa: true,
   },
-  geles: {
-    id: "geles",
-    nombre: "Geles",
-    descripcion: "Carbohidratos para correr y competir. Próximamente.",
-    orden: 3,
-    // Se activa cuando exista la línea. Mientras tanto no aparece
-    // en el filtro ni en el sitemap.
-    activa: false,
-  },
 };

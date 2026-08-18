@@ -3,11 +3,11 @@
  *
  * Regla central: el tamaño es una variante del producto, no un producto
  * aparte. Un shot es simplemente un producto con una sola variante, así que
- * jugos, shots y geles comparten card, ficha, ruta y carrito.
+ * jugos y shots comparten card, ficha, ruta y carrito.
  */
 
-/** Agregar "geles" acá propaga el tipo a todo el catálogo. */
-export const CATEGORIAS = ["jugos", "shots", "geles"] as const;
+/** Agregar una categoría acá propaga el tipo a todo el catálogo. */
+export const CATEGORIAS = ["jugos", "shots"] as const;
 export type CategoriaId = (typeof CATEGORIAS)[number];
 
 export interface Categoria {
@@ -35,17 +35,6 @@ export interface Variante {
   precio: PrecioUYU;
   sku: string;
   disponible: boolean;
-}
-
-export interface Ingrediente {
-  nombre: string;
-  /** Certificado orgánico MGAP. */
-  organico: boolean;
-  /**
-   * Habilita el claim "100% uruguayo" solo cuando todos los ingredientes
-   * son "uruguay". Ver esClaimUruguayo() abajo.
-   */
-  origen: "uruguay" | "importado";
 }
 
 export interface ImagenProducto {
@@ -77,45 +66,21 @@ interface ProductoBase {
 
 export interface Jugo extends ProductoBase {
   categoria: "jugos";
-  ingredientes: Ingrediente[];
+  ingredientes: string[];
   beneficios: string[];
 }
 
 export interface Shot extends ProductoBase {
   categoria: "shots";
-  ingredientes: Ingrediente[];
+  ingredientes: string[];
   beneficios: string[];
   dosisSugerida: string;
 }
 
-/** Placeholder tipado: ruta, catálogo y carrito ya lo soportan. */
-export interface Gel extends ProductoBase {
-  categoria: "geles";
-  carbohidratosG: number;
-  cafeinaMg: number;
-  sodioMg: number;
-  sabor: string;
-}
-
-export type Producto = Jugo | Shot | Gel;
+export type Producto = Jugo | Shot;
 
 export const esJugo = (p: Producto): p is Jugo => p.categoria === "jugos";
 export const esShot = (p: Producto): p is Shot => p.categoria === "shots";
-export const esGel = (p: Producto): p is Gel => p.categoria === "geles";
-
-/** Todo lo que se comunica por ingredientes, sin importar la línea. */
-export type ProductoConIngredientes = Jugo | Shot;
-
-export const tieneIngredientes = (
-  p: Producto,
-): p is ProductoConIngredientes => esJugo(p) || esShot(p);
-
-/** El claim solo se muestra si ningún ingrediente es importado. */
-export function esClaimUruguayo(p: Producto): boolean {
-  return (
-    tieneIngredientes(p) && p.ingredientes.every((i) => i.origen === "uruguay")
-  );
-}
 
 export function varianteDefault(p: Producto): Variante {
   return (
