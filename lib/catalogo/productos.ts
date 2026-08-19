@@ -174,6 +174,51 @@ export const PRODUCTOS: readonly Producto[] = [
     varianteDefaultId: "330ml",
     destacado: true,
   },
+  {
+    slug: "jugo-abc",
+    nombre: "Jugo ABC",
+    categoria: "jugos",
+    tagline: "Manzana, remolacha, zanahoria. Ahí está el nombre.",
+    descripcion:
+      "La combinación más simple que hay: manzana, remolacha y zanahoria, con limón para cortar lo terroso. Cuatro ingredientes, ninguno de relleno. Dulce sin azúcar agregada, denso, y del color que le sale a la remolacha sola.",
+    colorToken: "--color-jugo-abc",
+    ingredientes: ["Manzana", "Remolacha", "Zanahoria", "Limón"],
+    beneficios: [
+      "Remolacha cruda: la fuente de nitratos",
+      "Cuatro ingredientes, nada más",
+      "Sin azúcar agregada",
+    ],
+    imagenes: [
+      {
+        src: "/productos/jugo-abc.jpg",
+        alt: "Botella de vidrio con Jugo ABC de manzana, remolacha y zanahoria",
+        width: 1200,
+        height: 1600,
+      },
+    ],
+    variantes: [
+      {
+        id: "330ml",
+        nombre: "330 ml",
+        volumenMl: 330,
+        precio: 25000,
+        envase: 2000,
+        sku: "JABC-330",
+        disponible: true,
+      },
+      {
+        id: "910ml",
+        nombre: "910 ml",
+        volumenMl: 910,
+        precio: 50000,
+        envase: 3000,
+        sku: "JABC-910",
+        disponible: true,
+      },
+    ],
+    varianteDefaultId: "330ml",
+    destacado: true,
+  },
 
   // Shot: una sola variante. El selector de tamaño se oculta solo.
   // RECETA PROVISORIA.
@@ -225,7 +270,7 @@ export const PRODUCTOS: readonly Producto[] = [
     slug: "pack-lunes-a-viernes",
     nombre: "Lunes a Viernes",
     categoria: "packs",
-    dias: 5,
+    tipo: "fijo",
     tagline: "Cinco días, una botella por día.",
     descripcion:
       "Un jugo por día, de lunes a viernes, rotando los tres. Va con el desayuno: no reemplaza comidas ni es una limpieza. Es la forma de tomar verdura todos los días sin pensarlo.",
@@ -245,16 +290,93 @@ export const PRODUCTOS: readonly Producto[] = [
     ],
     variantes: [
       {
-        id: "unico",
+        id: "5",
         nombre: "5 botellas",
+        botellas: 5,
         volumenMl: 1650,
         precio: 110000,
         envase: 10000,
-        sku: "PACK-5D",
+        sku: "PACK-LV-5",
         disponible: true,
       },
     ],
-    varianteDefaultId: "unico",
+    varianteDefaultId: "5",
+    destacado: true,
+  },
+  {
+    slug: "pack-abc",
+    nombre: "Pack ABC",
+    categoria: "packs",
+    tipo: "fijo",
+    tagline: "Cinco días del mismo, que es como se estudió.",
+    descripcion:
+      "Cinco botellas de ABC, una por día. Sin rotación: los ensayos de remolacha son de dosis diaria sostenida, no de variedad. Va con el desayuno, no en lugar de él. Aviso: la remolacha puede teñir la orina de rojo los primeros días. Es inofensivo y se va solo.",
+    colorToken: "--color-jugo-abc",
+    contenido: [{ sku: "JABC-330", cantidad: 5 }],
+    imagenes: [
+      {
+        src: "/productos/pack-abc.jpg",
+        alt: "Cinco botellas de vidrio de Jugo ABC en una caja",
+        width: 1200,
+        height: 1600,
+      },
+    ],
+    variantes: [
+      {
+        id: "5",
+        nombre: "5 botellas",
+        botellas: 5,
+        volumenMl: 1650,
+        precio: 110000,
+        envase: 10000,
+        sku: "PACK-ABC-5",
+        disponible: true,
+      },
+    ],
+    varianteDefaultId: "5",
+    destacado: true,
+  },
+  {
+    slug: "armar-pack",
+    nombre: "Armá tu pack",
+    categoria: "packs",
+    tipo: "armable",
+    tagline: "Elegís vos: 4 o 5 jugos, los que quieras.",
+    descripcion:
+      "Los mismos jugos de 330 ml, en la combinación que se te cante. Cuatro o cinco botellas, una por día. Mismo precio que los packs ya armados: elegir no te cuesta más.",
+    colorToken: "--color-pack-libre",
+    skusElegibles: ["JV-330", "JN-330", "JR-330", "JABC-330"],
+    imagenes: [
+      {
+        src: "/productos/pack-armable.jpg",
+        alt: "Botellas de 330 ml de distintos jugos alineadas",
+        width: 1200,
+        height: 1600,
+      },
+    ],
+    variantes: [
+      {
+        id: "4",
+        nombre: "4 botellas",
+        botellas: 4,
+        volumenMl: 1320,
+        precio: 88000,
+        envase: 8000,
+        sku: "PACK-LIBRE-4",
+        disponible: true,
+      },
+      {
+        id: "5",
+        nombre: "5 botellas",
+        botellas: 5,
+        volumenMl: 1650,
+        precio: 110000,
+        envase: 10000,
+        sku: "PACK-LIBRE-5",
+        disponible: true,
+      },
+    ],
+    varianteDefaultId: "5",
     destacado: true,
   },
 ];

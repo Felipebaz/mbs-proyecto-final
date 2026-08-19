@@ -81,23 +81,39 @@ export interface Shot extends ProductoBase {
   dosisMl: number;
 }
 
-/**
- * Un pack no tiene receta propia: es un envoltorio sobre variantes que ya
- * existen. Por eso `contenido` en vez de `ingredientes`, y por eso el ahorro
- * se calcula contra el catálogo en vez de escribirse a mano.
- */
-export interface Pack extends ProductoBase {
-  categoria: "packs";
-  /** Días que cubre, a una botella por día. */
-  dias: number;
-  /** Qué trae adentro, por SKU de variante. */
-  contenido: readonly LineaPack[];
-}
-
 export interface LineaPack {
   sku: Variante["sku"];
   cantidad: number;
 }
+
+/**
+ * La variante de un pack es una cantidad de botellas, no un tamaño. Como todos
+ * los jugos de 330 valen lo mismo, el precio depende solo de cuántas son —
+ * igual que 330/910 en un jugo, el precio vive acá y no se calcula.
+ */
+export interface VariantePack extends Variante {
+  /** Botellas que trae. Una por día. */
+  botellas: number;
+}
+
+interface PackBase extends ProductoBase {
+  categoria: "packs";
+  variantes: readonly [VariantePack, ...VariantePack[]];
+}
+
+/** Composición cerrada: vos elegís qué trae. */
+export interface PackFijo extends PackBase {
+  tipo: "fijo";
+  contenido: readonly LineaPack[];
+}
+
+/** Composición abierta: el cliente elige, dentro de `skusElegibles`. */
+export interface PackArmable extends PackBase {
+  tipo: "armable";
+  skusElegibles: readonly Variante["sku"][];
+}
+
+export type Pack = PackFijo | PackArmable;
 
 export type Producto = Jugo | Shot | Pack;
 
@@ -105,9 +121,14 @@ export const esJugo = (p: Producto): p is Jugo => p.categoria === "jugos";
 export const esShot = (p: Producto): p is Shot => p.categoria === "shots";
 export const esPack = (p: Producto): p is Pack => p.categoria === "packs";
 
-/** Botellas que trae el pack. Suma las cantidades, no las líneas. */
-export function botellasPorPack(pack: Pack): number {
-  return pack.contenido.reduce((total, l) => total + l.cantidad, 0);
+export const esPackFijo = (p: Producto): p is PackFijo =>
+  esPack(p) && p.tipo === "fijo";
+export const esPackArmable = (p: Producto): p is PackArmable =>
+  esPack(p) && p.tipo === "armable";
+
+/** Días que cubre, a una botella por día. Se deriva, no se escribe. */
+export function diasDePack(v: VariantePack): number {
+  return v.botellas;
 }
 
 export function varianteDefault(p: Producto): Variante {

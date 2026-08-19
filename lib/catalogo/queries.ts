@@ -3,12 +3,12 @@ import { PRODUCTOS } from "./productos";
 import type {
   Categoria,
   CategoriaId,
-  Pack,
+  PackFijo,
   PrecioUYU,
   Producto,
   Variante,
 } from "@/types/producto";
-import { CATEGORIAS, esPack, precioTotal } from "@/types/producto";
+import { CATEGORIAS, esPackArmable, esPackFijo, precioTotal } from "@/types/producto";
 
 /**
  * Única puerta de entrada al catálogo. Los componentes nunca importan
@@ -94,7 +94,7 @@ export interface LineaPackResuelta {
 
 /** Qué jugos hay adentro, listos para la ficha del pack. */
 export async function getContenidoPack(
-  pack: Pack,
+  pack: PackFijo,
 ): Promise<LineaPackResuelta[]> {
   return pack.contenido.map((linea) => {
     const encontrado = buscarPorSku(linea.sku);
@@ -108,7 +108,7 @@ export async function getContenidoPack(
 }
 
 /** Lo que costaría comprar el contenido botella por botella. */
-export async function precioSueltoPack(pack: Pack): Promise<PrecioUYU> {
+export async function precioSueltoPack(pack: PackFijo): Promise<PrecioUYU> {
   const contenido = await getContenidoPack(pack);
   return contenido.reduce(
     (total, l) => total + precioTotal(l.variante) * l.cantidad,
@@ -117,7 +117,7 @@ export async function precioSueltoPack(pack: Pack): Promise<PrecioUYU> {
 }
 
 /** El argumento de venta: "ahorrás $150". Nunca escrito a mano. */
-export async function ahorroPack(pack: Pack): Promise<PrecioUYU> {
+export async function ahorroPack(pack: PackFijo): Promise<PrecioUYU> {
   const suelto = await precioSueltoPack(pack);
   return suelto - precioTotal(pack.variantes[0]);
 }
@@ -149,18 +149,41 @@ export function validarCatalogo(): string[] {
   }
 
   for (const producto of PRODUCTOS) {
-    if (!esPack(producto)) continue;
+    if (esPackFijo(producto)) {
+      let botellas = 0;
 
-    for (const linea of producto.contenido) {
-      if (!vistos.has(linea.sku)) {
-        errores.push(
-          `Pack "${producto.slug}": el SKU "${linea.sku}" no existe en el catálogo.`,
-        );
+      for (const linea of producto.contenido) {
+        if (!vistos.has(linea.sku)) {
+          errores.push(
+            `Pack "${producto.slug}": el SKU "${linea.sku}" no existe en el catálogo.`,
+          );
+        }
+        if (!Number.isInteger(linea.cantidad) || linea.cantidad < 1) {
+          errores.push(
+            `Pack "${producto.slug}": el SKU "${linea.sku}" tiene cantidad ${linea.cantidad}.`,
+          );
+        }
+        botellas += linea.cantidad;
       }
-      if (linea.cantidad < 1) {
-        errores.push(
-          `Pack "${producto.slug}": el SKU "${linea.sku}" tiene cantidad ${linea.cantidad}.`,
-        );
+
+      // El precio está en la variante y el contenido acá: si se despegan, el
+      // cliente paga por 5 botellas y le llegan 4.
+      for (const v of producto.variantes) {
+        if (v.botellas !== botellas) {
+          errores.push(
+            `Pack "${producto.slug}": la variante "${v.id}" dice ${v.botellas} botellas pero el contenido suma ${botellas}.`,
+          );
+        }
+      }
+    }
+
+    if (esPackArmable(producto)) {
+      for (const sku of producto.skusElegibles) {
+        if (!vistos.has(sku)) {
+          errores.push(
+            `Pack "${producto.slug}": el SKU elegible "${sku}" no existe.`,
+          );
+        }
       }
     }
   }

@@ -68,6 +68,28 @@ sostiene. **Pesalo.**
 **bacterias de tu lengua**. Usar enjuague bucal antiséptico *anula* el efecto de la remolacha
 sobre la presión. Está documentado. Es el tipo de dato que la gente comparte, y es verdad.
 
+### Jugo ABC — misma ciencia, receta más corta
+
+`Manzana · Remolacha · Zanahoria · Limón`
+
+Como combinación, el "ABC" **no tiene ningún ensayo clínico**. Los "15 beneficios del jugo
+milagroso" son blogs copiándose entre sí. Los beneficios son la suma de los ingredientes.
+
+Pero hay algo mejor: existe un **ECA doble ciego cruzado de jugo de remolacha y manzana**
+(500 g, n=30, monitoreo ambulatorio 24 h). En hombres, −4 a −5 mmHg de sistólica a las 6 horas.
+Dos tercios de la receta del ABC tienen un ensayo propio.
+
+**Zanahoria:** el betacaroteno es liposoluble. Sin grasa se absorbe mal — mismo problema que
+la curcumina. Aporta color y dulzor, que ya alcanza. No lo vendas por la vitamina A.
+
+**Beeturia:** la remolacha tiñe la orina de rojo en un 10-15% de la gente. Inofensivo. Si no lo
+avisás, te llega un mensaje asustado el día 2 del pack.
+
+> ⚠️ **Nombre:** "Beta Power" está registrado — US 4418817, *BETAPOWER NATURAL BETAINE*,
+> de DuPont Nutrition Biosciences (hoy IFF). Es betaína de melaza de remolacha: misma materia
+> prima, misma categoría. Verificar en DNPI antes de usarlo en Uruguay. Por eso el producto se
+> llama **ABC** — las iniciales son los ingredientes, se explica solo y no tiene dueño.
+
 ---
 
 ## 2. Jugo Naranja — el segundo mejor
@@ -193,6 +215,17 @@ justo en ese lugar.
 | Nombre | NO "detox" / "limpieza" | Ilegal en Uruguay + falso |
 | Nombre | "5 días" / "Semana" / "Rutina" | Vende el hábito, que es lo que de verdad estás vendiendo |
 
+### Los dos packs
+
+**Pack ABC** — 5 × ABC, sin rotación.
+Es el más alineado con la evidencia: los ECAs de remolacha son de **dosis diaria sostenida**
+(4 semanas en varios), no de variedad. Cinco días del mismo jugo es literalmente el diseño que
+se estudió. Avisar de la beeturia en la ficha.
+
+**Pack Lunes a Viernes** — rotación de 3 jugos.
+Menos alineado con los ensayos, pero mejor para quien se aburre del mismo sabor. La rotación
+existe para no apilar días de oxalato alto, no por variedad.
+
 ### Composición final: pack "Lunes a Viernes"
 
 Rotación pensada para no apilar días de oxalato alto:
@@ -264,6 +297,8 @@ antes de escribir la etiqueta.
 | Producto | Claim | Evidencia |
 |---|---|---|
 | **Rojo** | Nitratos de remolacha → presión arterial | 🟢 **Fuerte** — meta-análisis de ECAs |
+| **ABC** | Ídem, más un ECA de remolacha+manzana | 🟢 **Fuerte** — receta más corta, misma base |
+| **ABC** | "Jugo milagroso" / la combinación en sí | 🔴 Nula — cero ensayos del ABC como tal |
 | **Naranja** | Hesperidina → función endotelial | 🟡 Moderada — dosis del estudio es 500 ml |
 | **Shot** | Jengibre → marcadores de inflamación | 🟡 Moderada — requiere >80 días |
 | Todos | Fuente de vitamina C y potasio | 🟢 Dato nutricional, no promesa |
