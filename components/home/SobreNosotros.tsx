@@ -5,6 +5,7 @@
 export function SobreNosotros() {
   return (
     <section
+      id="sobre-nosotros"
       aria-labelledby="sobre-nosotros-titulo"
       className="mx-auto w-full max-w-6xl px-5 py-16 sm:px-8"
     >
