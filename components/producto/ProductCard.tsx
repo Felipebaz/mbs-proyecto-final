@@ -15,10 +15,10 @@ function descripcionCorta(producto: Producto): string {
 export function ProductCard({ producto }: ProductCardProps) {
   return (
     <article
-      className="group relative flex h-56 w-[85vw] max-w-[340px] flex-none
-                 snap-start overflow-hidden rounded-lg border border-border
-                 bg-white transition-shadow focus-within:ring-2
-                 focus-within:ring-foreground hover:shadow-lg sm:w-[340px]"
+      className="group relative flex h-56 w-full overflow-hidden rounded-lg
+                 border border-border bg-white transition-shadow
+                 focus-within:ring-2 focus-within:ring-foreground
+                 hover:shadow-lg"
     >
       {/* Mitad izquierda: el color real del producto, a alto completo.
           Va inline porque el token viene del dato — Tailwind no puede generar

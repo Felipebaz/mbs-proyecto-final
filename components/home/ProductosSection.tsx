@@ -39,8 +39,15 @@ export async function ProductosSection() {
                    focus:outline-none focus-visible:ring-2
                    focus-visible:ring-foreground [scrollbar-width:thin]"
       >
+        {/* El ancho y el snap viven acá, no en la card: la misma card se usa
+            en la grilla de /productos, donde el ancho lo pone la grilla. */}
         {productos.map((producto) => (
-          <ProductCard key={producto.slug} producto={producto} />
+          <div
+            key={producto.slug}
+            className="w-[85vw] max-w-[340px] flex-none snap-start sm:w-[340px]"
+          >
+            <ProductCard producto={producto} />
+          </div>
         ))}
       </div>
     </section>
