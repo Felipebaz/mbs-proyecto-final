@@ -7,9 +7,9 @@ export function SobreNosotros() {
     <section
       id="sobre-nosotros"
       aria-labelledby="sobre-nosotros-titulo"
-      className="mx-auto w-full max-w-6xl px-5 py-16 sm:px-8"
+      className="panel reveal"
     >
-      <div className="grid items-center gap-10 sm:grid-cols-2">
+      <div className="mx-auto grid w-full max-w-6xl items-center gap-10 px-5 py-20 sm:grid-cols-2 sm:px-8">
         {/* TODO fotos: acá va la chacra o el prensado. Mientras tanto, un
             panel del verde de la marca para que la sección no quede coja. */}
         <div

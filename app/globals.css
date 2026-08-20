@@ -47,3 +47,76 @@ body {
   color: var(--foreground);
   font-family: var(--font-geist-sans), system-ui, sans-serif;
 }
+
+/* -------------------------------------------------------------------------
+ * Landing tipo panel: una sección por pantalla.
+ *
+ * El snap vive en el elemento que scrollea (html), pero SOLO actúa sobre hijos
+ * con `snap-start`. Como únicamente las secciones de la landing lo tienen,
+ * /productos y las fichas scrollean normal sin tocar nada.
+ *
+ * `proximity` y no `mandatory`: con mandatory, una sección más alta que la
+ * pantalla (mobile, texto largo) puede volverse inalcanzable — el navegador
+ * te tira al siguiente panel antes de que termines de leer. Para forzar el
+ * enganche siempre, cambiar la palabra por `mandatory`.
+ * ---------------------------------------------------------------------- */
+html {
+  scroll-snap-type: y proximity;
+  /* El header es sticky: sin esto, los anclajes quedan tapados por él. */
+  scroll-padding-top: 4rem;
+  scroll-behavior: smooth;
+}
+
+/* -------------------------------------------------------------------------
+ * Fade-in atado al scroll. Cero JavaScript.
+ *
+ * `animation-timeline: view()` liga el avance de la animación a la posición
+ * del elemento en la pantalla, no al reloj. No hay IntersectionObserver, no
+ * hay useEffect, no hay componente cliente.
+ *
+ * Todo va adentro de @supports: donde el navegador no lo soporta (Firefox
+ * hoy), el contenido se ve normal, quieto. Nunca invisible — ese es el bug
+ * clásico de los fade-in hechos con JS que no llega a ejecutarse.
+ * ---------------------------------------------------------------------- */
+@keyframes anima-reveal {
+  from {
+    opacity: 0;
+    translate: 0 2.5rem;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .reveal {
+      animation: anima-reveal linear both;
+      animation-timeline: view();
+      animation-range: entry 5% entry 70%;
+    }
+
+    /* Los hijos entran escalonados: cada uno arranca un poco más tarde que
+       el anterior. Con scroll el retraso se mide en recorrido, no en tiempo. */
+    .reveal-stagger > *:nth-child(1) { animation-range: entry 10% entry 60%; }
+    .reveal-stagger > *:nth-child(2) { animation-range: entry 18% entry 68%; }
+    .reveal-stagger > *:nth-child(3) { animation-range: entry 26% entry 76%; }
+    .reveal-stagger > *:nth-child(4) { animation-range: entry 34% entry 84%; }
+
+    .reveal-stagger > * {
+      animation: anima-reveal linear both;
+      animation-timeline: view();
+    }
+  }
+}
+
+/* Panel: una sección que ocupa la pantalla y engancha el scroll.
+   min-height y no height: si el contenido no entra, crece en vez de cortarse. */
+.panel {
+  min-height: 100dvh;
+  scroll-snap-align: start;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}

@@ -44,15 +44,16 @@ export function Beneficios() {
   return (
     <section
       aria-labelledby="beneficios-titulo"
-      className="mx-auto w-full max-w-6xl px-5 py-16 sm:px-8"
+      className="panel reveal bg-white"
     >
-      <h2 id="beneficios-titulo" className="font-display text-2xl sm:text-3xl">
+      <div className="mx-auto w-full max-w-6xl px-5 py-20 sm:px-8">
+      <h2 id="beneficios-titulo" className="font-display text-3xl sm:text-4xl">
         Por qué orgánico, por qué prensado en frío
       </h2>
 
       {/* <dl> y no <ul>: cada ítem es un par dato → definición. El lector de
           pantalla lee "0 g, azúcar agregada" como una unidad. */}
-      <dl className="mt-10 grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
+      <dl className="reveal-stagger mt-12 grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
         {BENEFICIOS.map(({ dato, titulo, texto }) => (
           <div key={titulo} className="border-t border-border pt-4">
             <dt className="font-display text-4xl text-jugo-verde">{dato}</dt>
@@ -63,6 +64,7 @@ export function Beneficios() {
           </div>
         ))}
       </dl>
+      </div>
     </section>
   );
 }
