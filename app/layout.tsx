@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 // Montevideo"); el nombre de marca todavía no la trae sola.
 export const metadata: Metadata = {
   title: {
-    default: "Anima — Jugos orgánicos prensados en frío en Montevideo",
+    default: "Anima Jugos orgánicos prensados en frío ",
     template: "%s | Anima",
   },
   description:
