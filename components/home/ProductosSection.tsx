@@ -46,7 +46,7 @@ export async function ProductosSection() {
             key={producto.slug}
             className="w-[85vw] max-w-[340px] flex-none snap-start sm:w-[340px]"
           >
-            <ProductCard producto={producto} />
+            <ProductCard producto={producto} mostrarPrecio={false} />
           </div>
         ))}
       </div>
