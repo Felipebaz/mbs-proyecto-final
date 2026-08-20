@@ -17,7 +17,7 @@ export async function ProductosSection() {
       aria-labelledby="productos-titulo"
       className="panel reveal overflow-hidden"
     >
-      <div className="mx-auto mb-6 flex w-full max-w-6xl items-baseline justify-between gap-4 px-5 sm:px-8 lg:max-w-[75%]">
+      <div className="mx-auto mb-6 flex w-full max-w-6xl items-baseline justify-between gap-4 px-5 sm:px-8 lg:max-w-[80%]">
         <h2 id="productos-titulo" className="font-display text-3xl sm:text-4xl">
           Productos
         </h2>
@@ -38,7 +38,7 @@ export async function ProductosSection() {
         className="mx-auto flex w-full max-w-6xl snap-x snap-mandatory gap-4
                    overflow-x-auto px-5 pb-4 focus:outline-none
                    focus-visible:ring-2 focus-visible:ring-foreground sm:px-8
-                   lg:max-w-[75%] [scrollbar-width:thin]"
+                   lg:max-w-[80%] [scrollbar-width:thin]"
       >
         {/* El ancho y el snap viven acá, no en la card: la misma card se usa
             en la grilla de /productos, donde el ancho lo pone la grilla.
