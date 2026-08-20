@@ -1,8 +1,38 @@
 @import "tailwindcss";
 
+/**
+ * Paleta de marca.
+ *
+ * Los `--color-*` de producto NO son decoración: cada card los lee desde
+ * `producto.colorToken` para pintar el fondo de su foto. El nombre de la
+ * variable tiene que coincidir exacto con el dato en lib/catalogo/productos.ts.
+ *
+ * El color sale del jugo real, no del gusto: el ABC es más oscuro que el Rojo
+ * porque la remolacha va sin diluir ("del color que le sale a la remolacha
+ * sola"), y el Rojo lleva pepino y manzana verde que lo levantan.
+ */
+@theme {
+  --color-jugo-verde: #5e7f3b;
+  --color-jugo-naranja: #e08a24;
+  --color-jugo-rojo: #a32b4e;
+  --color-jugo-abc: #6e1e3c;
+  --color-shot-curcuma: #e5a012;
+
+  /* Packs: mezclan varios jugos, así que no heredan un color de producto.
+     Van en neutros cálidos, del envase y no del contenido. */
+  --color-pack-semana: #a9764b;
+  --color-pack-libre: #6e7a73;
+
+  --color-border: #e5e0d8;
+  --color-muted: #6b6b63;
+
+  --font-display: var(--font-geist-sans);
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Papel, no blanco puro: deja que la card blanca se despegue del fondo. */
+  --background: #faf8f4;
+  --foreground: #1a1a17;
 }
 
 @theme inline {
@@ -12,15 +42,8 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
 }
