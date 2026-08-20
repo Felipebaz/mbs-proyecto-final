@@ -182,7 +182,7 @@ export const PRODUCTOS: readonly Producto[] = [
     descripcion:
       "La combinación más simple que hay: manzana, remolacha y zanahoria, con limón para cortar lo terroso. Cuatro ingredientes, ninguno de relleno. Dulce sin azúcar agregada, denso, y del color que le sale a la remolacha sola.",
     colorToken: "--color-jugo-abc",
-    ingredientes: ["Manzana", "Remolacha", "Zanahoria", "Limón"],
+    ingredientes: ["Manzana", "Remolacha", "Zanahoria", "Limón", "Jengibre"],
     beneficios: [
       "Remolacha cruda: la fuente de nitratos",
       "Cuatro ingredientes, nada más",
