@@ -5,28 +5,34 @@ import { Precio } from "@/components/producto/Precio";
 import { type Variante } from "@/types/producto";
 
 /**
- * Selector de tamaño de la card. PRIMER componente cliente del proyecto.
+ * Selector de tamaño. El único componente cliente del catálogo.
  *
  * Es "use client" por una sola razón: useState. Elegir un tamaño y ver el
  * precio cambiar no puede pasar en el servidor — no hay ida y vuelta, pasa
  * en la máquina del usuario.
  *
- * Todo lo demás de la card sigue siendo servidor. Se aísla acá para que el
+ * Todo lo que lo rodea sigue siendo servidor. Se aísla acá para que el
  * JavaScript que baja al navegador sean estos botones y nada más.
+ *
+ * Lo usan la card (chico) y la ficha (grande) con el mismo estado.
  */
 
-interface SelectorTamanoCardProps {
+interface SelectorTamanoProps {
   variantes: readonly Variante[];
   varianteDefaultId: string;
   /** Para el aria-label: "Tamaño de Jugo Verde", no un "Tamaño" suelto. */
   nombreProducto: string;
+  /** "sm" en la card, "lg" en la ficha. */
+  tamano?: "sm" | "lg";
 }
 
-export function SelectorTamanoCard({
+export function SelectorTamano({
   variantes,
   varianteDefaultId,
   nombreProducto,
-}: SelectorTamanoCardProps) {
+  tamano = "sm",
+}: SelectorTamanoProps) {
+  const grande = tamano === "lg";
   const [seleccionadaId, setSeleccionadaId] = useState(varianteDefaultId);
 
   const seleccionada =
@@ -39,7 +45,7 @@ export function SelectorTamanoCard({
       <div
         role="group"
         aria-label={`Tamaño de ${nombreProducto}`}
-        className="flex gap-1.5"
+        className={grande ? "flex gap-2" : "flex gap-1.5"}
       >
         {variantes.map((variante) => {
           const activa = variante.id === seleccionada.id;
@@ -52,8 +58,10 @@ export function SelectorTamanoCard({
               // aria-pressed dice si está apretado. Sin esto un lector de
               // pantalla lee dos botones iguales sin saber cuál está activo.
               aria-pressed={activa}
-              className={`rounded-full border px-2.5 py-1 text-xs transition-colors
+              className={`rounded-full border transition-colors
                 disabled:cursor-not-allowed disabled:opacity-40 ${
+                  grande ? "px-5 py-2 text-sm" : "px-2.5 py-1 text-xs"
+                } ${
                   activa
                     ? "border-foreground bg-foreground text-background"
                     : "border-border hover:border-foreground"
@@ -65,8 +73,8 @@ export function SelectorTamanoCard({
         })}
       </div>
 
-      <div className="mt-1.5">
-        <Precio variante={seleccionada} />
+      <div className={grande ? "mt-4" : "mt-1.5"}>
+        <Precio variante={seleccionada} tamano={tamano} />
       </div>
     </div>
   );

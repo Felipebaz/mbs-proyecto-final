@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Precio } from "@/components/producto/Precio";
 import { ProductoSimbolo } from "@/components/producto/ProductoSimbolo";
-import { SelectorTamanoCard } from "@/components/producto/SelectorTamanoCard";
+import { SelectorTamano } from "@/components/producto/SelectorTamano";
 import { formatLista } from "@/lib/format";
 import {
   esJugo,
@@ -84,7 +84,7 @@ export function ProductCard({
             botellas es una decisión de la ficha, no de la card.) */}
         {!mostrarPrecio ? null : esJugo(producto) &&
           producto.variantes.length > 1 ? (
-          <SelectorTamanoCard
+          <SelectorTamano
             variantes={producto.variantes}
             varianteDefaultId={producto.varianteDefaultId}
             nombreProducto={producto.nombre}
