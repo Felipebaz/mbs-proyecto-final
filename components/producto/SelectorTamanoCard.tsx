@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { formatPrecio } from "@/lib/format";
-import { precioTotal, type Variante } from "@/types/producto";
+import { Precio } from "@/components/producto/Precio";
+import { type Variante } from "@/types/producto";
 
 /**
  * Selector de tamaño de la card. PRIMER componente cliente del proyecto.
@@ -65,9 +65,9 @@ export function SelectorTamanoCard({
         })}
       </div>
 
-      <p className="mt-1.5 text-sm font-medium">
-        {formatPrecio(precioTotal(seleccionada))}
-      </p>
+      <div className="mt-1.5">
+        <Precio variante={seleccionada} />
+      </div>
     </div>
   );
 }

@@ -1,8 +1,16 @@
 import Link from "next/link";
+import { Precio } from "@/components/producto/Precio";
 import { ProductoSimbolo } from "@/components/producto/ProductoSimbolo";
 import { SelectorTamanoCard } from "@/components/producto/SelectorTamanoCard";
-import { formatLista, formatPrecio } from "@/lib/format";
-import { esJugo, esPack, precioDesde, type Producto } from "@/types/producto";
+import { formatLista } from "@/lib/format";
+import {
+  esJugo,
+  esPack,
+  precioTotal,
+  varianteDefault,
+  type Producto,
+  type Variante,
+} from "@/types/producto";
 
 interface ProductCardProps {
   producto: Producto;
@@ -12,6 +20,17 @@ interface ProductCardProps {
    * conversación pasa en /productos y en la ficha.
    */
   mostrarPrecio?: boolean;
+}
+
+/**
+ * La más barata, para el "desde $X". Devuelve la variante entera y no solo el
+ * número, porque el precio se muestra desglosado en contenido + envase.
+ */
+function varianteMasBarata(producto: Producto): Variante {
+  return producto.variantes.reduce(
+    (masBarata, v) => (precioTotal(v) < precioTotal(masBarata) ? v : masBarata),
+    varianteDefault(producto),
+  );
 }
 
 /** Los packs no tienen ingredientes propios: mezclan jugos que sí los tienen. */
@@ -71,12 +90,10 @@ export function ProductCard({
             nombreProducto={producto.nombre}
           />
         ) : (
-          <p className="text-sm text-muted">
-            desde{" "}
-            <span className="font-medium text-foreground">
-              {formatPrecio(precioDesde(producto))}
-            </span>
-          </p>
+          <Precio
+            variante={varianteMasBarata(producto)}
+            desde={producto.variantes.length > 1}
+          />
         )}
 
         {/* Stretched link: el ::after cubre la card entera, así todo el bloque
