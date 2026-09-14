@@ -26,7 +26,9 @@
   --color-border: #e5e0d8;
   --color-muted: #6b6b63;
 
-  --font-display: var(--font-geist-sans);
+  /* Display = Fraunces (títulos). El cuerpo sigue en Geist: la Fraunces tiene
+     demasiada personalidad para párrafos largos. */
+  --font-display: var(--font-fraunces), Georgia, "Times New Roman", serif;
 }
 
 :root {
