@@ -76,7 +76,12 @@ export async function getVariante(
  * duplican los de los jugos: si mañana sube el Rojo, el ahorro se corrige solo.
  * ---------------------------------------------------------------------- */
 
-function buscarPorSku(
+/**
+ * Resuelve un SKU a producto + variante. Es la puerta por la que el carrito
+ * convierte lo que mandó el navegador en precios: el SKU es lo único que viaja,
+ * el precio se busca acá.
+ */
+export function buscarPorSku(
   sku: string,
 ): { producto: Producto; variante: Variante } | null {
   for (const producto of PRODUCTOS) {
