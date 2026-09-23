@@ -32,6 +32,20 @@ const DURACION_MS = 30 * 24 * 60 * 60 * 1000;
 /** Pasada la mitad de la vida, se renueva. Evita un UPDATE por request. */
 const RENOVAR_DESDE_MS = DURACION_MS / 2;
 
+/**
+ * Vida máxima de una sesión con permisos de admin, contada desde que se creó.
+ *
+ * No se renueva: a las 8 horas hay que volver a entrar, se haya usado la app o
+ * no. Es distinto de la sesión de cliente, que se desliza mientras haya
+ * actividad.
+ *
+ * El motivo es el daño posible. Una sesión de cliente robada compra jugos; una
+ * de admin ve todos los pedidos, cambia precios y exporta datos. Ocho horas es
+ * un turno de trabajo: alcanza para la jornada y no deja la llave puesta de un
+ * día para el otro.
+ */
+export const VIDA_MAXIMA_ADMIN_MS = 8 * 60 * 60 * 1000;
+
 function hashDeToken(token: string): string {
   return createHash("sha256").update(token).digest("hex");
 }
@@ -129,6 +143,10 @@ export interface SesionValidada {
   expiraEn: Date;
   /** true si se extendió el vencimiento: hay que reescribir la cookie. */
   renovada: boolean;
+  /** Cuándo se creó. Con esto se mide la vida máxima de la sesión admin. */
+  creadaEn: Date;
+  /** Cuándo pasó el segundo factor en esta sesión. NULL = no lo pasó. */
+  factor2En: Date | null;
 }
 
 /**
@@ -168,7 +186,29 @@ export async function validarToken(
     renovada = true;
   }
 
-  return { usuario: fila.usuario, sesionId: id, expiraEn, renovada };
+  return {
+    usuario: fila.usuario,
+    sesionId: id,
+    expiraEn,
+    renovada,
+    creadaEn: fila.sesion.creadaEn,
+    factor2En: fila.sesion.factor2En,
+  };
+}
+
+/**
+ * Marca que esta sesión pasó el segundo factor.
+ *
+ * Se guarda en la sesión y no en el usuario: el segundo factor prueba quién sos
+ * en ESTE dispositivo. Si viviera en el usuario, validarlo una vez dejaría
+ * entrar a todas las sesiones abiertas, incluida la de quien te robó la
+ * contraseña.
+ */
+export async function marcarFactor2(sesionId: string): Promise<void> {
+  await db
+    .update(sesion)
+    .set({ factor2En: new Date() })
+    .where(eq(sesion.id, sesionId));
 }
 
 export async function invalidarSesion(sesionId: string) {
@@ -188,4 +228,9 @@ export async function purgarSesionesVencidas(): Promise<void> {
   await db.delete(sesion).where(lt(sesion.expiraEn, new Date()));
 }
 
-export const _test = { hashDeToken, DURACION_MS, RENOVAR_DESDE_MS };
+export const _test = {
+  hashDeToken,
+  DURACION_MS,
+  RENOVAR_DESDE_MS,
+  VIDA_MAXIMA_ADMIN_MS,
+};

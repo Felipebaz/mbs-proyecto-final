@@ -3,7 +3,7 @@ import "server-only";
 import { cache } from "react";
 import { forbidden, redirect } from "next/navigation";
 import type { Usuario } from "@/lib/db/esquema";
-import { leerCookieSesion, validarToken } from "./sesion";
+import { leerCookieSesion, validarToken, VIDA_MAXIMA_ADMIN_MS } from "./sesion";
 
 /**
  * Capa de acceso a datos: el ÚNICO lugar donde se pregunta quién está logueado.
@@ -56,9 +56,60 @@ export async function exigirUsuario(): Promise<Usuario> {
  * en la sesión, degradar a alguien no tendría efecto hasta que cerrara sesión.
  */
 export async function requerirAdmin(): Promise<Usuario> {
-  const usuario = await usuarioActual();
-  if (!usuario) redirect("/login");
-  if (usuario.rol !== "admin") forbidden();
+  const s = await sesionActual();
+  if (!s) redirect("/login");
+
+  if (s.usuario.rol !== "admin") forbidden();
+
+  /*
+   * Sin segundo factor no hay panel, ni siquiera con la contraseña correcta.
+   *
+   * Es el motivo por el que esta fase va ANTES del panel: una pantalla de
+   * admin protegida sólo con contraseña es una contraseña filtrada de
+   * distancia respecto de los pedidos, los precios y los datos de los
+   * clientes.
+   */
+  if (!s.usuario.totpActivadoEn) redirect("/admin/2fa/alta");
+  if (!s.factor2En) redirect("/admin/2fa/verificar");
+
+  /*
+   * Vida máxima de la sesión admin: 8 horas desde que se creó, sin renovarse.
+   *
+   * La sesión de cliente se desliza mientras haya actividad; esta no. Una
+   * sesión de cliente robada compra jugos, una de admin ve todo y cambia
+   * precios.
+   */
+  if (Date.now() - s.creadaEn.getTime() > VIDA_MAXIMA_ADMIN_MS) {
+    redirect("/login?vencida=1");
+  }
+
+  return s.usuario;
+}
+
+/**
+ * Exige que el segundo factor se haya pasado hace poco.
+ *
+ * Para las acciones que no se pueden deshacer ni explicar después: cambiar
+ * precios, exportar los datos de los clientes. Estar logueado hace seis horas
+ * no alcanza — si alguien se sentó en la computadora abierta, la sesión sigue
+ * siendo válida.
+ *
+ * @param maxEdadMinutos Cuánto vale la última verificación.
+ */
+export async function requerirReautenticacion(
+  maxEdadMinutos = 15,
+): Promise<Usuario> {
+  const usuario = await requerirAdmin();
+  const s = await sesionActual();
+
+  const verificadoHace = s?.factor2En
+    ? Date.now() - s.factor2En.getTime()
+    : Infinity;
+
+  if (verificadoHace > maxEdadMinutos * 60_000) {
+    redirect("/admin/2fa/verificar?motivo=reautenticar");
+  }
+
   return usuario;
 }
 
