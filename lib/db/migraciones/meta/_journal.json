@@ -36,6 +36,20 @@
       "when": 1790178684027,
       "tag": "0004_dosfa-auditoria",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1790193194929,
+      "tag": "0005_ingredientes-recetas",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1790193483161,
+      "tag": "0006_mas-acciones-auditoria",
+      "breakpoints": true
     }
   ]
 }
