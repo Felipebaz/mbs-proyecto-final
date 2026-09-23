@@ -1,0 +1,28 @@
+#!/bin/sh
+#
+# Frena el commit si hay un secreto en lo que está por entrar.
+#
+# Es lo último que queda entre un token y el historial de git. Un secreto
+# commiteado no se borra reescribiendo el historial: hay que rotarlo, porque
+# cualquiera que haya clonado ya se lo llevó.
+#
+# Se activa con `core.hooksPath` (ver scripts/preparar-hooks.sh), no copiando
+# archivos a .git/hooks: así el hook está versionado y lo tiene todo el equipo.
+
+if ! command -v gitleaks >/dev/null 2>&1; then
+  echo "⚠️  gitleaks no está instalado: el commit pasa SIN escanear."
+  echo "   Instalalo con: brew install gitleaks"
+  exit 0
+fi
+
+# --staged: sólo lo que está por commitearse, no el repo entero.
+# --redact: si encuentra algo, no lo imprime en pantalla ni en los logs de CI.
+if ! gitleaks protect --staged --redact --verbose; then
+  echo ""
+  echo "❌ gitleaks encontró un posible secreto en lo que vas a commitear."
+  echo ""
+  echo "   Si es un secreto de verdad: sacalo del archivo y ROTALO."
+  echo "   Si es un falso positivo: agregalo a .gitleaksignore con su huella."
+  echo ""
+  exit 1
+fi
