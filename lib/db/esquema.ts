@@ -471,7 +471,11 @@ export const codigoRespaldo = pgTable(
 /** Qué se registra. Se amplía acá y en el CHECK. */
 export const ACCIONES_AUDITADAS = [
   "precio_cambiado",
+  "receta_cambiada",
+  "ingrediente_creado",
+  "ingrediente_dado_de_baja",
   "pedido_estado_cambiado",
+  "pedido_manual_creado",
   "datos_exportados",
   "rol_cambiado",
   "2fa_activado",
@@ -533,12 +537,112 @@ export const auditoria = pgTable(
     index("auditoria_accion_idx").on(t.accion, t.ocurridoEn),
     check(
       "auditoria_accion",
-      sql`${t.accion} in ('precio_cambiado','pedido_estado_cambiado','datos_exportados','rol_cambiado','2fa_activado','2fa_desactivado','login_admin')`,
+      sql`${t.accion} in ('precio_cambiado','receta_cambiada','ingrediente_creado','ingrediente_dado_de_baja','pedido_estado_cambiado','pedido_manual_creado','datos_exportados','rol_cambiado','2fa_activado','2fa_desactivado','login_admin')`,
     ),
   ],
 );
 
 export type Auditoria = typeof auditoria.$inferSelect;
+
+/* --------------------------------------------- ingredientes y recetas */
+
+/**
+ * Unidad en la que se mide y se compra un ingrediente.
+ *
+ * Todo se guarda en la unidad base (gramos, mililitros, unidades) para que las
+ * recetas y las compras se puedan sumar sin conversiones. Los kilos y litros se
+ * formatean al mostrar.
+ */
+export const UNIDADES = ["g", "ml", "unidad"] as const;
+export type Unidad = (typeof UNIDADES)[number];
+
+export const ingrediente = pgTable(
+  "ingrediente",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    nombre: text("nombre").notNull().unique(),
+    unidad: text("unidad").$type<Unidad>().notNull(),
+    /** De dónde se compra. Ayuda a armar la lista de compra. */
+    proveedor: text("proveedor"),
+    activo: boolean("activo").notNull().default(true),
+    creadoEn: timestamp("creado_en", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [check("ingrediente_unidad", sql`${t.unidad} in ('g','ml','unidad')`)],
+);
+
+/**
+ * Historial de precios. Cada cambio es una fila nueva, nunca un UPDATE.
+ *
+ * Es lo que permite calcular la rentabilidad de una semana con los precios que
+ * regían ESA semana. Si se sobreescribiera el precio, el margen de marzo se
+ * recalcularía con los costos de hoy y el número dejaría de significar algo.
+ */
+export const precioIngrediente = pgTable(
+  "precio_ingrediente",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+
+    ingredienteId: uuid("ingrediente_id")
+      .notNull()
+      .references(() => ingrediente.id, { onDelete: "cascade" }),
+
+    /**
+     * Centésimos por UNIDAD BASE (por gramo, por ml, por unidad).
+     *
+     * Entero como todo el dinero del proyecto. Un kilo a $180 se guarda como 18
+     * centésimos por gramo; si el precio por unidad base no da entero, se
+     * redondea al registrar y se anota el precio de compra en `nota`.
+     */
+    precioPorUnidad: integer("precio_por_unidad").notNull(),
+
+    /** Cómo se compró: "bolsa de 5 kg a $900". Para poder auditar el cálculo. */
+    nota: text("nota"),
+
+    /** Desde cuándo rige. El que tiene la fecha más reciente <= hoy es el vigente. */
+    desde: timestamp("desde", { withTimezone: true }).notNull().defaultNow(),
+
+    registradoPor: uuid("registrado_por"),
+  },
+  (t) => [
+    index("precio_ingrediente_idx").on(t.ingredienteId, t.desde),
+    check("precio_ingrediente_no_negativo", sql`${t.precioPorUnidad} >= 0`),
+  ],
+);
+
+/**
+ * Receta: cuánto de cada ingrediente lleva un SKU.
+ *
+ * Por SKU y no por producto: el SKU ya distingue tamaño, y un 910 ml no lleva
+ * lo mismo que un 330. El costo del SKU sale de sumar esto por el precio
+ * vigente de cada ingrediente.
+ */
+export const receta = pgTable(
+  "receta",
+  {
+    sku: text("sku").notNull(),
+
+    ingredienteId: uuid("ingrediente_id")
+      .notNull()
+      .references(() => ingrediente.id, { onDelete: "restrict" }),
+
+    /** En la unidad base del ingrediente. Entero: 250 g, no 0.25 kg. */
+    cantidad: integer("cantidad").notNull(),
+
+    actualizadoEn: timestamp("actualizado_en", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.sku, t.ingredienteId] }),
+    check("receta_cantidad_positiva", sql`${t.cantidad} > 0`),
+  ],
+);
+
+export type Ingrediente = typeof ingrediente.$inferSelect;
+export type PrecioIngrediente = typeof precioIngrediente.$inferSelect;
+export type Receta = typeof receta.$inferSelect;
 
 export type Usuario = typeof usuario.$inferSelect;
 export type Sesion = typeof sesion.$inferSelect;

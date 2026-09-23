@@ -1,0 +1,2 @@
+ALTER TABLE "auditoria" DROP CONSTRAINT "auditoria_accion";--> statement-breakpoint
+ALTER TABLE "auditoria" ADD CONSTRAINT "auditoria_accion" CHECK ("auditoria"."accion" in ('precio_cambiado','receta_cambiada','ingrediente_creado','ingrediente_dado_de_baja','pedido_estado_cambiado','pedido_manual_creado','datos_exportados','rol_cambiado','2fa_activado','2fa_desactivado','login_admin'));
