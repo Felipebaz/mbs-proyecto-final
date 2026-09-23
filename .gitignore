@@ -36,6 +36,11 @@ yarn-error.log*
 # hacen falta. Sin esto, quien clone el repo no sabe qué completar.
 !.env.example
 
+# Notas de entorno con detalle operativo (dónde se saca cada credencial, cómo
+# se rota). No llevan valores reales, pero describen la superficie de secretos
+# del proyecto: mejor que no salgan del equipo.
+*.local.md
+
 # vercel
 .vercel
 

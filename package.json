@@ -12,7 +12,9 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "prepare": "sh scripts/preparar-hooks.sh",
+    "secretos": "gitleaks detect --redact --verbose"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",
