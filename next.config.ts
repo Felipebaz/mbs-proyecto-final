@@ -62,6 +62,22 @@ const nextConfig: NextConfig = {
    */
   cacheComponents: true,
 
+  experimental: {
+    /*
+     * Habilita `forbidden()`, que corta el render y devuelve un 403 real.
+     *
+     * [decisión] Es una API experimental de Next. La alternativa era redirigir
+     * al home cuando falta permiso, pero eso miente sobre lo que pasó: un
+     * cliente que llega a /admin tiene que ver un 403, no una página distinta
+     * como si la ruta no existiera. Y para depurar un permiso mal puesto, la
+     * diferencia entre "no autorizado" y "redirigido" es todo.
+     *
+     * Riesgo: si Next cambia la API, hay que tocar `requerirAdmin()` y el
+     * archivo forbidden.tsx. Está acotado a esos dos lugares.
+     */
+    authInterrupts: true,
+  },
+
   // Un stack trace en una respuesta le dibuja el mapa del servidor a cualquiera.
   poweredByHeader: false,
 

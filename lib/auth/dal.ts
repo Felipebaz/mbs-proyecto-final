@@ -1,7 +1,7 @@
 import "server-only";
 
 import { cache } from "react";
-import { redirect } from "next/navigation";
+import { forbidden, redirect } from "next/navigation";
 import type { Usuario } from "@/lib/db/esquema";
 import { leerCookieSesion, validarToken } from "./sesion";
 
@@ -41,6 +41,28 @@ export async function exigirUsuario(): Promise<Usuario> {
 }
 
 /**
+ * Exige que quien pide sea admin.
+ *
+ * Tiene que llamarse DENTRO de cada server action y cada route handler del
+ * panel, no sólo en la página que los muestra. Una server action es un POST
+ * contra la ruta: cualquiera puede mandarlo sin pasar por la UI, y que el
+ * botón no se renderice para un cliente no impide nada.
+ *
+ * Sin sesión → /login. Con sesión pero sin rol → 403, no redirect: un cliente
+ * que llega acá tiene que ver que no le alcanza el permiso, no una página
+ * distinta como si la ruta no existiera.
+ *
+ * El rol se lee de la base en cada request, nunca de la cookie: si se guardara
+ * en la sesión, degradar a alguien no tendría efecto hasta que cerrara sesión.
+ */
+export async function requerirAdmin(): Promise<Usuario> {
+  const usuario = await usuarioActual();
+  if (!usuario) redirect("/login");
+  if (usuario.rol !== "admin") forbidden();
+  return usuario;
+}
+
+/**
  * Exige sesión Y correo verificado.
  *
  * Para el checkout de la FASE 3: navegar sin verificar se puede, pagar no. Un
@@ -67,8 +89,21 @@ export interface UsuarioPublico {
   id: string;
   email: string;
   nombre: string | null;
+  emailVerificado: boolean;
+  /**
+   * Va incluido porque la UI necesita saber si mostrar el link al panel. NO es
+   * una autorización: el navegador puede mentir sobre esto y no cambia nada —
+   * quien decide es `requerirAdmin()` del lado servidor, contra la base.
+   */
+  rol: Usuario["rol"];
 }
 
 export function aPublico(u: Usuario): UsuarioPublico {
-  return { id: u.id, email: u.email, nombre: u.nombre };
+  return {
+    id: u.id,
+    email: u.email,
+    nombre: u.nombre,
+    emailVerificado: u.emailVerificado,
+    rol: u.rol,
+  };
 }

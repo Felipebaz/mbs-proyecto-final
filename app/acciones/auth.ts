@@ -5,7 +5,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { sesionActual } from "@/lib/auth/dal";
 import { hashearPassword, verificarPassword } from "@/lib/auth/password";
-import { consumir, liberar, LIMITES } from "@/lib/auth/rate-limit";
+import { consumir, liberar } from "@/lib/auth/rate-limit";
 import {
   borrarCookieSesion,
   crearSesion,
@@ -51,8 +51,19 @@ export interface EstadoForm {
 /** El cliente real detrás del proxy de Vercel. */
 async function contexto() {
   const h = await headers();
+  const ip = h.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
+
   return {
-    ip: h.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null,
+    /** Para guardar en la sesión. `null` cuando no se pudo determinar. */
+    ip,
+    /**
+     * Para el rate limit, que necesita siempre una clave.
+     *
+     * Sin IP, todos esos pedidos caen en la misma cubeta. Es a propósito: es
+     * más restrictivo que no limitar, y quien logre esconder su IP no consigue
+     * con eso un presupuesto infinito de intentos.
+     */
+    claveIp: ip ?? "sin-ip",
     userAgent: h.get("user-agent"),
   };
 }
@@ -97,9 +108,9 @@ export async function registrarse(
     return { errores: z_flatten(campos.error) };
   }
 
-  const { ip } = await contexto();
+  const { claveIp } = await contexto();
 
-  if (!consumir(`registro:${ip}`, LIMITES.registroPorIp).permitido) {
+  if (!(await consumir("registroPorIp", claveIp)).permitido) {
     return { error: "Demasiados intentos. Probá en un rato." };
   }
 
@@ -174,12 +185,12 @@ export async function reenviarVerificacion(
 
   if (!campos.success) return generico;
 
-  const { ip } = await contexto();
-  const porIp = consumir(`verif-ip:${ip}`, LIMITES.resetPorIp);
-  const porCuenta = consumir(
-    `verif-cuenta:${campos.data.email}`,
-    LIMITES.verificacionPorCuenta,
-  );
+  const { claveIp } = await contexto();
+  // En paralelo: son dos idas a Redis y no dependen una de otra.
+  const [porIp, porCuenta] = await Promise.all([
+    consumir("resetPorIp", claveIp),
+    consumir("verificacionPorCuenta", campos.data.email),
+  ]);
 
   // También acá la respuesta es genérica: decir "demasiados intentos" sólo
   // cuando la cuenta existe volvería a ser un canal de enumeración.
@@ -210,12 +221,11 @@ export async function pedirReset(
 
   if (!campos.success) return generico;
 
-  const { ip } = await contexto();
-  const porIp = consumir(`reset-ip:${ip}`, LIMITES.resetPorIp);
-  const porCuenta = consumir(
-    `reset-cuenta:${campos.data.email}`,
-    LIMITES.resetPorCuenta,
-  );
+  const { claveIp } = await contexto();
+  const [porIp, porCuenta] = await Promise.all([
+    consumir("resetPorIp", claveIp),
+    consumir("resetPorCuenta", campos.data.email),
+  ]);
 
   if (!porIp.permitido || !porCuenta.permitido) return generico;
 
@@ -325,12 +335,14 @@ export async function entrar(
   }
 
   const { email, password } = campos.data;
-  const { ip, userAgent } = await contexto();
+  const { ip, claveIp, userAgent } = await contexto();
 
   // Por IP y por cuenta. Sólo por IP, un atacante con IPs rotativas pasa; sólo
   // por cuenta, cualquiera deja afuera a un cliente tocándole el mail.
-  const porIp = consumir(`login-ip:${ip}`, LIMITES.loginPorIp);
-  const porCuenta = consumir(`login-cuenta:${email}`, LIMITES.loginPorCuenta);
+  const [porIp, porCuenta] = await Promise.all([
+    consumir("loginPorIp", claveIp),
+    consumir("loginPorCuenta", email),
+  ]);
 
   if (!porIp.permitido || !porCuenta.permitido) {
     const espera = Math.max(porIp.esperaSegundos, porCuenta.esperaSegundos);
@@ -357,7 +369,7 @@ export async function entrar(
     return { error: "Correo o contraseña incorrectos." };
   }
 
-  liberar(`login-cuenta:${email}`);
+  await liberar("loginPorCuenta", email);
 
   // Sesión nueva, siempre: nunca se reusa la anónima (session fixation).
   const { token, expiraEn } = await crearSesion(encontrado.id, { ip, userAgent });

@@ -15,6 +15,13 @@
       "when": 1790159680084,
       "tag": "0001_tokens-correo",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790170805683,
+      "tag": "0002_rol-usuario",
+      "breakpoints": true
     }
   ]
 }

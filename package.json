@@ -14,11 +14,14 @@
     "db:studio": "drizzle-kit studio",
     "typecheck": "tsc --noEmit",
     "prepare": "sh scripts/preparar-hooks.sh",
-    "secretos": "gitleaks detect --redact --verbose"
+    "secretos": "gitleaks detect --redact --verbose",
+    "admin:promover": "node --env-file-if-exists=.env.local scripts/promover-admin.mts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",
     "@node-rs/argon2": "^2.2.1",
+    "@upstash/ratelimit": "^2.1.0",
+    "@upstash/redis": "^1.39.0",
     "arctic": "^3.7.0",
     "drizzle-orm": "^0.45.2",
     "next": "^16.3.5",

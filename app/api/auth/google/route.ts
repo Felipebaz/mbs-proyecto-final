@@ -1,7 +1,7 @@
 import { headers } from "next/headers";
 import { NextResponse, type NextRequest } from "next/server";
 import { iniciarLoginGoogle } from "@/lib/auth/google";
-import { consumir, LIMITES } from "@/lib/auth/rate-limit";
+import { consumir } from "@/lib/auth/rate-limit";
 
 /**
  * Arranque del login con Google.
@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
 
   // Cada request escribe cookies y quema un state. Sin tope, es un generador
   // gratis de trabajo para el servidor.
-  if (!consumir(`oauth:${ip}`, LIMITES.oauthPorIp).permitido) {
+  if (!(await consumir("oauthPorIp", ip)).permitido) {
     return new NextResponse("Demasiados intentos.", { status: 429 });
   }
 

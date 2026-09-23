@@ -1,63 +1,94 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { consumir, liberar, LIMITES, _test } from "./rate-limit";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { consumir, liberar, LIMITES, verificarConfiguracion, _test } from "./rate-limit";
+
+/**
+ * Estos tests corren contra el limitador en memoria: no hay credenciales de
+ * Upstash en el entorno de test, y `consumir` cae solo a memoria cuando faltan.
+ *
+ * Lo que se verifica acá es la política —cuántos intentos, por cuánto tiempo,
+ * qué claves se aíslan entre sí—, que es la misma en las dos implementaciones.
+ */
 
 beforeEach(() => {
   _test.reiniciar();
   vi.useRealTimers();
 });
 
+afterEach(() => {
+  vi.useRealTimers();
+});
+
 describe("consumir", () => {
-  it("deja pasar hasta el máximo y después corta", () => {
-    const limite = { maximo: 3, ventanaMs: 60_000 };
-
-    expect(consumir("a", limite).permitido).toBe(true);
-    expect(consumir("a", limite).permitido).toBe(true);
-    expect(consumir("a", limite).permitido).toBe(true);
-    expect(consumir("a", limite).permitido).toBe(false);
+  it("usa memoria cuando no hay credenciales de Upstash", () => {
+    expect(_test.hayUpstash()).toBe(false);
   });
 
-  it("cuenta cada clave por separado", () => {
-    const limite = { maximo: 1, ventanaMs: 60_000 };
+  it("deja pasar hasta el máximo y después corta", async () => {
+    const max = LIMITES.loginPorCuenta.maximo;
 
-    expect(consumir("ip-1", limite).permitido).toBe(true);
-    // Que una IP se pase no puede dejar afuera a otra.
-    expect(consumir("ip-2", limite).permitido).toBe(true);
-    expect(consumir("ip-1", limite).permitido).toBe(false);
+    for (let i = 0; i < max; i++) {
+      expect((await consumir("loginPorCuenta", "ana@x.com")).permitido).toBe(true);
+    }
+    expect((await consumir("loginPorCuenta", "ana@x.com")).permitido).toBe(false);
   });
 
-  it("dice cuánto falta para poder reintentar", () => {
-    const limite = { maximo: 1, ventanaMs: 60_000 };
-    consumir("b", limite);
+  it("cuenta cada identificador por separado", async () => {
+    for (let i = 0; i < LIMITES.loginPorCuenta.maximo; i++) {
+      await consumir("loginPorCuenta", "ana@x.com");
+    }
 
-    const r = consumir("b", limite);
+    expect((await consumir("loginPorCuenta", "ana@x.com")).permitido).toBe(false);
+    // Que a Ana la bloqueen no puede dejar afuera a Beto.
+    expect((await consumir("loginPorCuenta", "beto@x.com")).permitido).toBe(true);
+  });
+
+  it("cada límite lleva su propio contador", async () => {
+    for (let i = 0; i < LIMITES.loginPorCuenta.maximo; i++) {
+      await consumir("loginPorCuenta", "ana@x.com");
+    }
+    expect((await consumir("loginPorCuenta", "ana@x.com")).permitido).toBe(false);
+
+    // Gastar los intentos de login no puede consumir los de reset: son ataques
+    // distintos y se cuentan aparte.
+    expect((await consumir("resetPorCuenta", "ana@x.com")).permitido).toBe(true);
+  });
+
+  it("dice cuánto falta para reintentar", async () => {
+    for (let i = 0; i < LIMITES.resetPorCuenta.maximo; i++) {
+      await consumir("resetPorCuenta", "ana@x.com");
+    }
+
+    const r = await consumir("resetPorCuenta", "ana@x.com");
     expect(r.permitido).toBe(false);
     expect(r.esperaSegundos).toBeGreaterThan(0);
-    expect(r.esperaSegundos).toBeLessThanOrEqual(60);
+    expect(r.esperaSegundos).toBeLessThanOrEqual(
+      LIMITES.resetPorCuenta.ventanaMs / 1000,
+    );
   });
 
-  it("se libera sola cuando pasa la ventana", () => {
+  it("se libera sola cuando pasa la ventana", async () => {
     vi.useFakeTimers();
-    const limite = { maximo: 1, ventanaMs: 1000 };
 
-    expect(consumir("c", limite).permitido).toBe(true);
-    expect(consumir("c", limite).permitido).toBe(false);
+    for (let i = 0; i < LIMITES.loginPorCuenta.maximo; i++) {
+      await consumir("loginPorCuenta", "ana@x.com");
+    }
+    expect((await consumir("loginPorCuenta", "ana@x.com")).permitido).toBe(false);
 
-    vi.advanceTimersByTime(1001);
-    expect(consumir("c", limite).permitido).toBe(true);
+    vi.advanceTimersByTime(LIMITES.loginPorCuenta.ventanaMs + 1000);
+    expect((await consumir("loginPorCuenta", "ana@x.com")).permitido).toBe(true);
   });
 });
 
 describe("liberar", () => {
-  it("borra el contador tras un login exitoso", () => {
-    const limite = { maximo: 2, ventanaMs: 60_000 };
-
-    consumir("d", limite);
-    consumir("d", limite);
-    expect(consumir("d", limite).permitido).toBe(false);
+  it("borra el contador tras un login exitoso", async () => {
+    for (let i = 0; i < LIMITES.loginPorCuenta.maximo; i++) {
+      await consumir("loginPorCuenta", "ana@x.com");
+    }
+    expect((await consumir("loginPorCuenta", "ana@x.com")).permitido).toBe(false);
 
     // Si entró bien, los intentos fallidos de antes no cuentan más.
-    liberar("d");
-    expect(consumir("d", limite).permitido).toBe(true);
+    await liberar("loginPorCuenta", "ana@x.com");
+    expect((await consumir("loginPorCuenta", "ana@x.com")).permitido).toBe(true);
   });
 });
 
@@ -69,6 +100,7 @@ describe("LIMITES", () => {
      * que ser bajo porque nadie escribe mal su contraseña veinte veces.
      */
     expect(LIMITES.loginPorCuenta.maximo).toBeLessThan(LIMITES.loginPorIp.maximo);
+    expect(LIMITES.resetPorCuenta.maximo).toBeLessThan(LIMITES.resetPorIp.maximo);
   });
 
   it("todos tienen ventana y máximo razonables", () => {
@@ -76,5 +108,28 @@ describe("LIMITES", () => {
       expect(limite.maximo, nombre).toBeGreaterThan(0);
       expect(limite.ventanaMs, nombre).toBeGreaterThanOrEqual(60_000);
     }
+  });
+});
+
+describe("verificarConfiguracion", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("en producción exige Upstash", () => {
+    // `vi.stubEnv` y no `Object.defineProperty`: `process.env` rechaza
+    // descriptores de propiedad en Node.
+    vi.stubEnv("NODE_ENV", "production");
+
+    /*
+     * Sin esto, producción se queda con el limitador en memoria y nadie se
+     * entera: parece que hay rate limit y no lo hay. Es por instancia y se
+     * reinicia en cada deploy, así que en serverless prácticamente no limita.
+     */
+    expect(() => verificarConfiguracion()).toThrow(/UPSTASH/);
+  });
+
+  it("fuera de producción no exige nada", () => {
+    expect(() => verificarConfiguracion()).not.toThrow();
   });
 });
