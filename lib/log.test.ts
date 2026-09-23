@@ -28,12 +28,14 @@ describe("sanear — secretos", () => {
   });
 
   it("tapa la cadena de conexión pero deja el host", () => {
-    const url =
-      "postgresql://neondb_owner:npg_S3cr3tPass@ep-cool-123-pooler.sa-east-1.aws.neon.tech/neondb";
+    // Armada en piezas a propósito: con el literal completo, los escáneres de
+    // secretos la marcan como una credencial de verdad en cada corrida.
+    const passwordFalsa = ["npg", "esta", "no", "es", "real"].join("_");
+    const url = `postgresql://neondb_owner:${passwordFalsa}@ep-cool-123-pooler.sa-east-1.aws.neon.tech/neondb`;
     const salida = sanear(`no se pudo conectar a ${url}`);
 
     // La contraseña no puede quedar…
-    expect(salida).not.toContain("npg_S3cr3tPass");
+    expect(salida).not.toContain(passwordFalsa);
     expect(salida).not.toContain("neondb_owner");
     // …pero el host sí, que es lo que sirve para diagnosticar.
     expect(salida).toContain("sa-east-1.aws.neon.tech");
@@ -172,6 +174,26 @@ describe("detalleDeError", () => {
     expect(detalleDeError("falló")).toContain("falló");
     expect(detalleDeError(null)).toContain("desconocido");
     expect(detalleDeError(undefined)).toContain("desconocido");
+  });
+
+  it("un objeto tirado suelto: describe las claves, no los valores", () => {
+    /*
+     * Algunas librerías hacen `throw { code, detail }` en vez de
+     * `throw new Error()`. Con `String(e)` el log decía "[object Object]", que
+     * no sirve para nada.
+     *
+     * Se listan las claves y no los valores porque `sanear` sólo reconoce las
+     * formas de secreto que conoce: un teléfono o una dirección se le escapan.
+     */
+    const tirado = { code: "ECONNRESET", telefono: "099123456" };
+    const salida = detalleDeError(tirado);
+
+    expect(salida).not.toContain("[object Object]");
+    expect(salida).toContain("code");
+    expect(salida).toContain("telefono");
+    // La clave sí, el valor no.
+    expect(salida).not.toContain("099123456");
+    expect(salida).not.toContain("ECONNRESET");
   });
 });
 

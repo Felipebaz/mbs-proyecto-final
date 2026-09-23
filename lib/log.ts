@@ -105,6 +105,22 @@ export function detalleDeError(e: unknown): string {
   }
 
   if (typeof e === "string") return sanear(e);
+
+  /*
+   * Algo que no es Error ni string. Pasa cuando una librería hace
+   * `throw { code: ... }` en vez de `throw new Error(...)`.
+   *
+   * Se describen las CLAVES, no los valores. `String(e)` daría
+   * "[object Object]", que no sirve para nada; volcar el objeto con
+   * JSON.stringify sí serviría, pero `sanear` sólo conoce las formas de secreto
+   * que puede reconocer —un teléfono o una dirección se le escapan—. Las claves
+   * alcanzan para saber qué tirar y de dónde vino.
+   */
+  if (typeof e === "object" && e !== null) {
+    const claves = Object.keys(e).slice(0, 10).map(sanear).join(", ");
+    return `desconocido: ${e.constructor?.name ?? "objeto"} con claves [${claves}]`;
+  }
+
   return `desconocido: ${sanear(String(e))}`;
 }
 
@@ -119,13 +135,7 @@ export function logError(
   e: unknown,
   datos: Readonly<Record<string, string | number | boolean | null>> = {},
 ): void {
-  const extra = Object.entries(datos)
-    .map(([k, v]) => `${k}=${typeof v === "string" ? sanear(v) : v}`)
-    .join(" ");
-
-  console.error(
-    `${contexto} — ${detalleDeError(e)}${extra ? ` | ${extra}` : ""}`,
-  );
+  console.error(`${contexto} — ${detalleDeError(e)}${sufijo(datos)}`);
 }
 
 /** Para avisos que no son errores. Mismo saneamiento. */
@@ -133,9 +143,17 @@ export function logAviso(
   contexto: string,
   datos: Readonly<Record<string, string | number | boolean | null>> = {},
 ): void {
-  const extra = Object.entries(datos)
-    .map(([k, v]) => `${k}=${typeof v === "string" ? sanear(v) : v}`)
-    .join(" ");
+  console.warn(`${contexto}${sufijo(datos)}`);
+}
 
-  console.warn(`${contexto}${extra ? ` | ${extra}` : ""}`);
+/** Serializa los datos extra, saneando cada string. Vacío si no hay ninguno. */
+function sufijo(
+  datos: Readonly<Record<string, string | number | boolean | null>>,
+): string {
+  const partes = Object.entries(datos).map(
+    ([clave, valor]) =>
+      `${clave}=${typeof valor === "string" ? sanear(valor) : valor}`,
+  );
+
+  return partes.length > 0 ? ` | ${partes.join(" ")}` : "";
 }
