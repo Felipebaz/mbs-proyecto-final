@@ -1,77 +1,114 @@
-# Auth y carrito
+# Seguridad, auth y panel
 
 Cómo levantar esto, qué decisiones hay detrás y qué falta.
 
+> El nombre del archivo quedó de cuando sólo cubría auth y carrito. Hoy cubre
+> todo: pagos, panel, segundo factor y operación.
+
 ## Puesta en marcha
 
-### 1. Base de datos
+### 1. Base de datos — Neon
 
-Crear un proyecto en [Neon](https://neon.tech). **Región São Paulo (`sa-east-1`)**:
-la sesión se valida contra la base en cada request, así que la latencia
-servidor→DB se paga siempre.
+Crear un proyecto en [Neon](https://neon.tech), **región São Paulo
+(`sa-east-1`)**: la sesión se valida contra la base en cada request, así que la
+latencia servidor→DB se paga siempre.
 
 ```
 Montevideo → São Paulo   ~30-40ms
 Montevideo → Virginia    ~120-150ms
 ```
 
-Copiar la connection string (la que dice `-pooler`) a `.env.local`.
+Copiar la connection string **con `-pooler` en el host**.
 
-### 2. Google OAuth
+### 2. Upstash Redis
 
-`console.cloud.google.com` → APIs & Services → Credentials → Create Credentials
-→ OAuth client ID → Web application.
+[console.upstash.com](https://console.upstash.com) → Redis → Create Database,
+también en São Paulo. De la pestaña **REST API** salen las dos variables.
 
-En **Authorized redirect URIs** va exactamente el mismo valor que
-`GOOGLE_REDIRECT_URI`. Google hace match exacto: una barra de más y falla.
+En producción son obligatorias: sin ellas la app **no arranca**.
+
+### 3. Google OAuth
+
+`console.cloud.google.com` → APIs & Services → Credentials → OAuth client ID →
+Web application. La redirect URI va **exactamente igual** que `GOOGLE_REDIRECT_URI`.
+
+### 4. Resend
+
+[resend.com](https://resend.com) → Domains → Add Domain, y cargar SPF, DKIM y
+DMARC. Sin eso los mails rebotan o caen en spam.
+
+### 5. Mercado Pago
+
+`mercadopago.com.uy/developers` → Tus integraciones → tu aplicación.
+**Credenciales** da `MP_ACCESS_TOKEN`; **Webhooks** da `MP_WEBHOOK_SECRET` (son
+cosas distintas, se confunden seguido) y es donde se configura la URL:
 
 ```
-dev:  http://localhost:3000/api/auth/google/callback
-prod: https://TU-DOMINIO/api/auth/google/callback
+https://TU-DOMINIO/api/webhooks/mercadopago
 ```
 
-### 3. Variables
+### 6. Claves generadas
 
 ```bash
-cp .env.example .env.local   # y completar
-node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"  # CRON_SECRET
+cp .env.example .env.local
+
+# CRON_SECRET y CLAVE_CIFRADO
+node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
+node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 ```
 
-### 4. Migrar y levantar
+### 7. Migrar, levantar, promoverse
 
 ```bash
 npm run db:migrate
 npm run dev
+npm run admin:promover -- tu@correo.com
 ```
+
+Entrás a `/admin`, activás el segundo factor, y guardás los 8 códigos de
+respaldo. **Esa es la única vez que se ven.**
+
+Después: cargar ingredientes con precio → cargar recetas. Recién ahí la
+rentabilidad y la lista de compra dicen algo.
 
 ## Mapa de archivos
 
 | Archivo | Qué hace |
 |---|---|
-| `lib/db/esquema.ts` | Tablas. Ni un precio vive acá |
-| `lib/db/cliente.ts` | Conexión Neon, lazy (el build no necesita DB) |
+| `lib/db/esquema.ts` | Todas las tablas. Ni un precio de venta vive acá |
+| `lib/db/cliente.ts` | Conexión Neon, lazy (el build no necesita base) |
 | `lib/auth/password.ts` | Argon2id + hash señuelo contra timing |
-| `lib/auth/sesion.ts` | Token opaco, cookie, ciclo de vida |
-| `lib/auth/dal.ts` | El único lugar que pregunta quién está logueado |
-| `lib/auth/google.ts` | OAuth: PKCE, state, vinculación de cuentas |
-| `lib/auth/rate-limit.ts` | Cubetas en memoria por IP y por cuenta |
-| `lib/carrito/calculo.ts` | Precio desde el catálogo. Puro, testeado |
-| `lib/carrito/repositorio.ts` | Persistencia, carrito anónimo, fusión |
-| `app/acciones/` | Server Actions (login, registro, carrito) |
-| `app/api/auth/google/` | Ida y vuelta del flujo OAuth |
-| `app/api/cron/limpieza/` | Purga de sesiones y carritos vencidos |
+| `lib/auth/sesion.ts` | Token opaco, cookie, ciclo de vida, 2FA por sesión |
+| `lib/auth/tokens.ts` | Tokens de un solo uso para verificación y reset |
+| `lib/auth/totp.ts` | Segundo factor y códigos de respaldo |
+| `lib/auth/cifrado.ts` | AES-256-GCM para el secreto TOTP |
+| `lib/auth/dal.ts` | Único lugar que decide quién sos y qué podés |
+| `lib/auth/google.ts` | OAuth: PKCE, state, vinculación segura |
+| `lib/auth/rate-limit.ts` | Upstash, con memoria como respaldo local |
+| `lib/email/` | Proveedor detrás de una interfaz; Resend, consola, falso |
+| `lib/carrito/` | Cálculo puro + persistencia; precios del catálogo |
+| `lib/pagos/` | `ProveedorPago` + Mercado Pago |
+| `lib/pedidos/` | Crear, procesar el pago, administrar |
+| `lib/costos/` | Ingredientes, recetas, rentabilidad, lista de compra |
+| `lib/auditoria.ts` | Bitácora sólo-inserción |
+| `lib/log.ts` | Saneamiento de logs: sin datos personales ni secretos |
+| `lib/csv.ts` | Export con protección contra inyección de fórmulas |
+| `proxy.ts` | CSP con nonce, sólo para el panel |
+| `instrumentation.ts` | Falla al arrancar si falta configuración crítica |
 
 ## Las decisiones
 
 ### Contraseñas: hasheadas, no cifradas
 
-Cifrar es reversible — si se filtra la clave, se filtran todas. Argon2id con los
-parámetros mínimos de OWASP (`m=19MiB, t=2, p=1`).
+Argon2id con los mínimos de OWASP (`m=19MiB, t=2, p=1`). Cifrar sería reversible.
 
-La contraseña **sí** viaja por la red, una vez, en el body de un POST sobre TLS.
-No hay forma de evitarlo: el servidor tiene que verla para verificarla.
-Hashearla en el navegador empeoraría las cosas — el hash pasaría a ser la
-contraseña efectiva y quien lo intercepte lo reenvía tal cual.
+La contraseña **sí** viaja por la red, una vez, en un POST sobre TLS. No hay
+alternativa: el servidor tiene que verla para verificarla. Hashearla en el
+navegador empeora — el hash pasa a ser la contraseña efectiva.
+
+**La excepción:** el secreto TOTP se **cifra**, no se hashea. El servidor lo
+necesita en claro para calcular el código esperado. AES-256-GCM, clave en el
+entorno.
 
 ### Sesiones: token opaco, no JWT
 
@@ -83,82 +120,167 @@ token = base64url(randomBytes(32))   → cookie
 id    = sha256(token)                → base
 ```
 
-sha256 y no Argon2 para el token: ya es aleatorio de 256 bits, no hay nada que
-adivinar, y Argon2 sumaría ~50ms a cada request.
+sha256 y no Argon2: el token ya es aleatorio de 256 bits.
 
-Cookie: `__Host-` + `HttpOnly` + `Secure` + `SameSite=Lax` + `Path=/`, sin
-`Domain`. La autoridad de vencimiento es la columna `expira_en`, nunca la cookie.
+Cookie `__Host-` + `HttpOnly` + `Secure` + `SameSite=Lax` + `Path=/`, sin
+`Domain`. **La autoridad de vencimiento es la columna `expira_en`**, nunca la
+cookie.
+
+| | Cliente | Admin |
+|---|---|---|
+| Duración | 30 días, se desliza | **8 h, sin renovarse** |
+| Segundo factor | no | obligatorio, por sesión |
+
+Una sesión de cliente robada compra jugos; una de admin ve todo y cambia precios.
+
+### El registro no inicia sesión
+
+Es lo único que hace real la promesa de no enumerar usuarios. Con auto-login,
+un correo nuevo te deja adentro y uno existente no — y esa diferencia delata
+quiénes son clientes, por más genérico que sea el mensaje.
 
 ### Google: los tres chequeos que no son opcionales
 
-1. **`state`** contra la cookie → sin esto, un atacante te loguea en *su* cuenta
-2. **origen del `id_token`** → lo trajimos nosotros del endpoint de Google con
-   nuestro `client_secret`, por eso se puede decodificar sin verificar firma. Si
-   llegara por cualquier otro camino, habría que verificar contra el JWKS
-3. **`email_verified`** → sin esto, alguien crea una cuenta Google con el mail de
-   un cliente y se lleva su cuenta
+1. **`state`** contra la cookie → sin esto te loguean en la cuenta del atacante
+2. **origen del `id_token`** → lo trajimos nosotros con nuestro `client_secret`;
+   por eso se puede decodificar sin verificar firma. Si llegara por otro camino,
+   habría que verificar contra el JWKS
+3. **`email_verified`** → sin esto, alguien crea una cuenta Google con el correo
+   de un cliente y se lleva su cuenta
 
 ### Precios: sólo del catálogo
 
 Del navegador llega SKU, cantidad y —para packs armables— qué eligió. **Nunca un
-precio.** No hay ningún `<input type="hidden" name="precio">` en el proyecto, ni
-lo puede haber. Cubierto por tests en `lib/carrito/calculo.test.ts`.
+precio.** No hay ningún `<input type="hidden" name="precio">` en el proyecto.
 
-### PPR: por qué `cacheComponents: true`
+El pedido manual del panel pasa por el **mismo `crearPedido`**, así los números
+son comparables.
 
-El header muestra el carrito y si estás logueado, y eso lee cookies. Sin PPR,
-una sola lectura de cookies vuelve dinámica **toda** la ruta: el catálogo entero
-dejaría de prerenderizarse por mostrar un número al lado de "Carrito".
+### Pagos: tres barreras
 
-Con PPR, cada página tiene shell estático (`◐`) y la parte de sesión llega por
-streaming. Las rutas que *son* la sesión (`/login`, `/carrito`, `/registro`)
-declaran `export const instant = false`.
+1. firma HMAC con tolerancia de timestamp (corta replays)
+2. el estado se **consulta** a Mercado Pago, no se lee del cuerpo
+3. el monto tiene que coincidir con el total del pedido
 
-### CSP sin nonce
+La página de retorno **sólo lee**. Los parámetros con los que MP devuelve al
+cliente los escribe cualquiera abriendo la URL a mano.
 
-Una CSP con nonce es más fuerte pero fuerza render dinámico en toda la app, y
-este sitio prerenderiza la landing y las 8 fichas. Sin nonce, `script-src`
-necesita `'unsafe-inline'`.
+Idempotencia por PK sobre `id_pago_mp` + transición condicional.
 
-Lo que igual queda cubierto, que es la mayor parte del riesgo real: no se puede
-cargar un script **externo**, `object-src 'none'`, `base-uri 'self'`,
-`form-action 'self'`, `frame-ancestors 'none'`. La defensa principal contra XSS
-sigue siendo React, que escapa todo. **Regla: cero `dangerouslySetInnerHTML`.**
+### Sin stock
+
+Anima prepara a pedido: toma los pedidos y después compra. No hay inventario
+que reservar. Lo único que se revalida al pagar es que la variante siga
+`disponible`.
+
+### Precios de ingredientes: historial, no UPDATE
+
+Cada cambio es una fila con su fecha. Es lo que permite ver el margen de una
+semana con los costos de esa semana.
+
+**Un costo incompleto no es un costo cero.** Un costo desconocido mostrado como
+cero da margen del 100%, y sobre eso alguien baja un precio. El panel lo avisa
+en cada pantalla.
+
+### Bitácora inmutable
+
+Trigger en Postgres que hace **fallar** `UPDATE` y `DELETE`. Sin foreign key a
+`usuario`: con `on delete set null`, borrar un usuario dispara un UPDATE interno
+que el trigger rechaza, y entonces ningún usuario se podría borrar.
+
+### CSP: estática en el sitio, con nonce en el panel
+
+Una CSP con nonce obliga a render dinámico. El catálogo prerenderiza la landing
+y las 8 fichas, así que ahí va la estática — que igual bloquea scripts externos,
+`object-src`, `base-uri` y `form-action`.
+
+El panel ya es dinámico y tiene los datos de todos los clientes: ahí va la CSP
+con nonce, sin `'unsafe-inline'`, más COOP/COEP/CORP (`proxy.ts`).
+
+**La defensa principal contra XSS sigue siendo React, que escapa todo.
+Regla: cero `dangerouslySetInnerHTML`.**
+
+### Logs sin datos personales
+
+Todo pasa por `lib/log.ts`, que tapa correos, tokens, claves de API, cadenas de
+conexión y hashes. Los correos van como `idOfuscado()` — 8 caracteres de sha256:
+alcanza para correlacionar, no para identificar.
+
+Los logs se guardan más tiempo que los datos y viajan a terceros. Y un error de
+un SDK puede traer adentro la petición completa con el token y los datos del
+cliente: por eso nunca se serializa el error entero.
 
 ## OWASP Top 10 — dónde está cada cosa
 
 | | Dónde |
 |---|---|
-| **A01** Access control | `lib/auth/dal.ts`; el carrito se resuelve por cookie/sesión del servidor, nunca por un id del formulario |
-| **A02** Crypto | Argon2id para contraseñas, sha256 para tokens, HSTS |
-| **A03** Injection | Drizzle parametriza; Zod en `lib/auth/validacion.ts`; CSP |
-| **A04** Diseño inseguro | Precios desde el catálogo; topes de cantidad y de líneas |
-| **A05** Misconfig | `next.config.ts`: CSP, HSTS, nosniff, frame-ancestors, Permissions-Policy, `poweredByHeader: false` |
-| **A06** Deps vulnerables | `npm audit --omit=dev` = 0. Next se subió a 16.3.5 por un RCE crítico en 16.3.0 |
-| **A07** Fallas de auth | Rate limit, hash señuelo contra timing, mensajes genéricos, sesión nueva en cada login |
-| **A08** Integridad | Lockfile commiteado; sin scripts de CDN |
-| **A09** Logging | El motivo real de un rechazo OAuth va al log, no a la URL |
+| **A01** Access control | `lib/auth/dal.ts`; `requerirAdmin()` en cada acción y route handler, con un test por cada uno |
+| **A02** Crypto | Argon2id, sha256 para tokens, AES-256-GCM para el secreto TOTP, HSTS |
+| **A03** Injection | Drizzle parametriza; Zod en cada borde; CSP; CSV a prueba de fórmulas |
+| **A04** Diseño inseguro | Precios del catálogo; el registro no enumera; la página de retorno no marca pagos |
+| **A05** Misconfig | `next.config.ts` + `proxy.ts`; `instrumentation.ts` no deja arrancar sin Redis |
+| **A06** Deps | `npm audit --omit=dev` en CI + Dependabot semanal |
+| **A07** Fallas de auth | Rate limit distribuido, hash señuelo, mensajes genéricos, sesión nueva en cada login, 2FA obligatorio para admin |
+| **A08** Integridad | Lockfile commiteado; gitleaks en pre-commit y en CI; sin scripts de CDN |
+| **A09** Logging | Bitácora inmutable + `lib/log.ts` |
 | **A10** SSRF | No se fetchea ninguna URL que venga del usuario |
+
+## Operación
+
+### Backups y recuperación (Neon)
+
+Neon hace **PITR** (point-in-time recovery): se puede restaurar la base a
+cualquier instante dentro de la ventana de retención.
+
+**Hay que verificar la ventana en la consola**: el plan gratuito da pocos días.
+Para un negocio que factura, conviene un plan con retención más larga.
+
+Neon → proyecto → Settings → **History retention**.
+
+**Restaurar** no pisa nada: crea una rama nueva desde ese momento. El
+procedimiento es crear la rama, mirar que los datos estén bien, y recién ahí
+apuntar la aplicación.
+
+**Probar la restauración antes de necesitarla.** Un backup que nunca se
+restauró no se sabe si sirve.
+
+Lo que **no** cubre Neon: un `DELETE` mal hecho se recupera con PITR, pero sólo
+si alguien se da cuenta dentro de la ventana. La bitácora ayuda a detectarlo.
+
+### Cron
+
+`vercel.json` agenda `/api/cron/limpieza` a las 4 AM: purga sesiones vencidas,
+carritos abandonados y tokens de correo viejos.
+
+### Qué alertar
+
+Estas líneas de log significan que algo se rompió en silencio:
+
+| Patrón | Qué pasa |
+|---|---|
+| `[auditoria] NO SE PUDO REGISTRAR` | Se están haciendo cambios sin dejar rastro |
+| `[rate-limit] Redis no respondió` | El rate limit está abierto |
+| `[email] no se pudo enviar` | Nadie puede verificar cuentas ni recuperar contraseñas |
+| `[mercadopago] notificación rechazada` | Firma inválida: config rota, o alguien probando |
+| `[mercadopago] no se aplicó el pago` | **Monto que no coincide.** Mirarlo siempre |
+
+### Rotación de credenciales
+
+En `docs/entorno.local.md`, por variable. Lo importante: **`CLAVE_CIFRADO` no se
+puede rotar sin más** — al cambiarla, todos los admins tienen que volver a dar
+de alta el segundo factor.
 
 ## Lo que falta
 
-Esto **no** está terminado. En orden de importancia:
-
-1. **Verificación de correo.** El registro crea la cuenta con
-   `emailVerificado: false` y nadie manda el mail. Hoy: quien se registra con el
-   mail de otro no puede hacer nada con eso (no vincula con Google sin
-   `email_verified`), pero tampoco puede verificar el suyo.
-2. **Aviso de registro duplicado.** Cuando el mail ya existe, la respuesta es
-   genérica a propósito (no enumerar usuarios) — pero falta el mail que le
-   avisaría al dueño legítimo. Hay un `TODO` en `app/acciones/auth.ts`.
-3. **Reset de contraseña.** No existe. Un usuario que la olvida queda afuera.
-4. **Checkout.** El carrito calcula el total pero no hay pedido ni pago. **Al
-   cobrar hay que revalidar precio y stock de nuevo**, no confiar en lo que
-   mostró el carrito.
-5. **Rate limit distribuido.** El de ahora es por instancia: en serverless con N
-   instancias, el atacante tiene N veces el presupuesto. Mover a Upstash Redis
-   sin cambiar la firma de `consumir()`.
-6. **Packs armables en la UI.** El cálculo y la validación están (`armarPack`),
-   falta el componente para elegir el contenido.
-7. **Gestión de sesiones.** La tabla guarda IP y user-agent para que el usuario
-   pueda ver y cerrar sus sesiones. Falta la pantalla.
+1. **Packs armables en la UI.** El cálculo y la validación están (`armarPack`,
+   con tests), falta el componente para que el cliente elija el contenido. Hoy
+   un pack armable no se puede comprar desde la web.
+2. **Gestión de sesiones.** La tabla guarda IP y user-agent para que el usuario
+   pueda ver y cerrar sus sesiones abiertas. Falta la pantalla.
+3. **Fotos de producto.** Hay un `TODO` en la ficha; el símbolo ocupa el lugar.
+4. **Passkeys como segunda opción de 2FA.** Se eligió TOTP por recuperación; el
+   esquema no impide agregar WebAuthn al lado.
+5. **Correo de confirmación de pedido.** El webhook marca el pedido pagado pero
+   no avisa por mail. El cliente ve la confirmación sólo en pantalla.
+6. **Probar el flujo real de Mercado Pago.** Toda la lógica está testeada, pero
+   nunca corrió contra el sandbox de MP. **Hacerlo antes de cobrarle a alguien.**

@@ -1,6 +1,7 @@
 import { connection, NextResponse, type NextRequest } from "next/server";
 import { db } from "@/lib/db/cliente";
 import { eventoPago } from "@/lib/db/esquema";
+import { logAviso, logError } from "@/lib/log";
 import { obtenerProveedorPago } from "@/lib/pagos";
 import { procesarPago } from "@/lib/pedidos/procesar-pago";
 
@@ -54,9 +55,10 @@ export async function POST(request: NextRequest) {
       motivoRechazo: verificacion.motivo,
     });
 
-    console.warn(
-      `[mercadopago] notificación rechazada (${verificacion.motivo}) request-id=${requestId}`,
-    );
+    logAviso("[mercadopago] notificación rechazada", {
+      motivo: verificacion.motivo,
+      requestId: requestId ?? "sin-id",
+    });
 
     return new NextResponse(null, { status: 401 });
   }
@@ -86,10 +88,11 @@ export async function POST(request: NextRequest) {
        * sandbox pegándole a producción). Se responde 200 para que MP deje de
        * reintentar algo que nunca va a andar, y queda en la bitácora.
        */
-      console.error(
-        `[mercadopago] no se aplicó el pago ${verificacion.idPago}: ` +
-          `${resultado.motivo} — ${resultado.detalle}`,
-      );
+      logAviso("[mercadopago] no se aplicó el pago", {
+        idPago: verificacion.idPago,
+        motivo: resultado.motivo,
+        detalle: resultado.detalle,
+      });
 
       await marcarProcesado(evento, resultado.motivo);
       return NextResponse.json({ recibido: true });
@@ -103,7 +106,9 @@ export async function POST(request: NextRequest) {
      * MP reintenta, y un reintento es exactamente lo que hace falta. Responder
      * 200 acá perdería el pago para siempre.
      */
-    console.error(`[mercadopago] error procesando ${verificacion.idPago}:`, e);
+    // El error puede traer el objeto de pago de Mercado Pago, que incluye el
+    // nombre y el correo del pagador.
+    logError("[mercadopago] error procesando", e, { idPago: verificacion.idPago });
     return new NextResponse(null, { status: 500 });
   }
 }
@@ -129,7 +134,7 @@ async function registrar(datos: {
     return fila.id;
   } catch (e) {
     // No poder escribir la bitácora no puede impedir procesar el pago.
-    console.error("[mercadopago] no se pudo registrar el evento:", e);
+    logError("[mercadopago] no se pudo registrar el evento", e);
     return null;
   }
 }

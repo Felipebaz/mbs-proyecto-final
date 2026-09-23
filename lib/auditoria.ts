@@ -2,6 +2,7 @@ import "server-only";
 
 import { desc, eq } from "drizzle-orm";
 import { headers } from "next/headers";
+import { idOfuscado, logError } from "@/lib/log";
 import { db } from "@/lib/db/cliente";
 import {
   auditoria,
@@ -37,8 +38,9 @@ export interface DatosAuditoria {
  * sigue. Es una decisión: que no se pueda cambiar el estado de un pedido porque
  * la tabla de auditoría está caída sería peor que perder una línea de bitácora.
  *
- * La contracara es que un fallo silencioso deja un hueco. Por eso el
- * `console.error` es ruidoso: es lo que habría que alertar.
+ * La contracara es que un fallo silencioso deja un hueco. Por eso el mensaje
+ * de error es reconocible: `[auditoria] NO SE PUDO REGISTRAR` es uno de los
+ * patrones que conviene alertar (ver docs/auth-y-carrito.md).
  */
 export async function registrar(
   usuario: Pick<Usuario, "id" | "email">,
@@ -59,10 +61,15 @@ export async function registrar(
       userAgent: h.get("user-agent")?.slice(0, 512) ?? null,
     });
   } catch (e) {
-    console.error(
-      `[auditoria] NO SE PUDO REGISTRAR "${datos.accion}" de ${usuario.email}:`,
-      e,
-    );
+    /*
+     * El correo NO va al log: va su id ofuscado, que alcanza para correlacionar
+     * ("el mismo usuario falló cinco veces") sin dejar un dato personal en un
+     * archivo que se guarda más tiempo que los datos y que viaja a terceros.
+     */
+    logError("[auditoria] NO SE PUDO REGISTRAR", e, {
+      accion: datos.accion,
+      usuario: idOfuscado(usuario.email),
+    });
   }
 }
 

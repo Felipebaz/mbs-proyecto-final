@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { fusionarCarritoAnonimo } from "@/lib/carrito/repositorio";
 import { completarLoginGoogle, ErrorOauth } from "@/lib/auth/google";
 import { crearSesion, escribirCookieSesion } from "@/lib/auth/sesion";
+import { logAviso } from "@/lib/log";
 
 /**
  * Vuelta de Google.
@@ -44,7 +45,7 @@ export async function GET(request: NextRequest) {
       // El motivo real va al log del servidor, no a la URL del navegador: los
       // detalles de por qué falló una validación de seguridad no le sirven al
       // usuario y sí a quien esté probando.
-      console.warn("[auth] callback de Google rechazado:", e.message);
+      logAviso("[auth] callback de Google rechazado", { motivo: e.message });
       return redirigir(request, "/login?error=google");
     }
     throw e;

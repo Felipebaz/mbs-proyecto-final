@@ -1,3 +1,4 @@
+import { idOfuscado, logError } from "@/lib/log";
 import { ProveedorConsola } from "./consola";
 import type { MensajeEmail, ProveedorEmail, ResultadoEnvio } from "./tipos";
 
@@ -61,11 +62,18 @@ export async function enviarEmail(
   const resultado = await p.enviar(mensaje);
 
   if (!resultado.ok) {
-    // El asunto y el destinatario, nunca el cuerpo: los mails llevan links con
-    // tokens de un solo uso y un log no es lugar para eso.
-    console.error(
-      `[email] no se pudo enviar "${mensaje.asunto}" a ${mensaje.para}: ${resultado.error}`,
-    );
+    /*
+     * El asunto sí, el destinatario ofuscado, el cuerpo nunca.
+     *
+     * El cuerpo lleva links con tokens de un solo uso: si quedaran en el log,
+     * quien lo lea puede verificar una cuenta o cambiar una contraseña ajena.
+     * Y el correo del destinatario es un dato personal que no tiene por qué
+     * quedar guardado meses.
+     */
+    logError("[email] no se pudo enviar", new Error(resultado.error ?? "sin detalle"), {
+      asunto: mensaje.asunto,
+      para: idOfuscado(mensaje.para),
+    });
   }
 
   return resultado;
