@@ -46,6 +46,7 @@ export function FormAuth({ accion, modo }: Props) {
           id="nombre"
           etiqueta="Nombre"
           type="text"
+          placeholder="Ana Pérez"
           autoComplete="name"
           errores={estado?.errores?.nombre}
         />
@@ -55,6 +56,7 @@ export function FormAuth({ accion, modo }: Props) {
         id="email"
         etiqueta="Correo"
         type="email"
+        placeholder="tu@correo.com"
         autoComplete="email"
         errores={estado?.errores?.email}
       />
@@ -63,6 +65,7 @@ export function FormAuth({ accion, modo }: Props) {
         id="password"
         etiqueta="Contraseña"
         type="password"
+        placeholder={esRegistro ? "Elegí una contraseña larga" : "Tu contraseña"}
         // "new-password" le dice al gestor que ofrezca generar una;
         // "current-password" que complete la guardada.
         autoComplete={esRegistro ? "new-password" : "current-password"}
@@ -86,11 +89,25 @@ interface CampoProps {
   etiqueta: string;
   type: string;
   autoComplete: string;
+  /**
+   * Pista dentro del campo. Va ADEMÁS del label, nunca en su lugar: el
+   * placeholder desaparece apenas escribís, así que quien vuelve a revisar el
+   * formulario ya no sabe qué iba en cada campo.
+   */
+  placeholder?: string;
   ayuda?: string;
   errores?: string[];
 }
 
-function Campo({ id, etiqueta, type, autoComplete, ayuda, errores }: CampoProps) {
+function Campo({
+  id,
+  etiqueta,
+  type,
+  autoComplete,
+  placeholder,
+  ayuda,
+  errores,
+}: CampoProps) {
   const idAyuda = ayuda ? `${id}-ayuda` : undefined;
   const idError = errores?.length ? `${id}-error` : undefined;
 
@@ -103,6 +120,7 @@ function Campo({ id, etiqueta, type, autoComplete, ayuda, errores }: CampoProps)
         id={id}
         name={id}
         type={type}
+        placeholder={placeholder}
         autoComplete={autoComplete}
         required
         // Le dice al lector de pantalla que el campo está mal y cuál es el

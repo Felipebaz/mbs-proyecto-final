@@ -32,15 +32,18 @@ export default async function RegistroPage() {
         Lo que tengas en el carrito se guarda al crearla.
       </p>
 
+      {/* Mismo orden que /login: form arriba, Google abajo como alternativa.
+          Es un solo botón para las dos cosas — si la cuenta no existe, Google
+          la crea; si existe, entra. Por eso dice "Continuar" y no "Registrarse". */}
       <div className="mt-8">
-        <BotonGoogle />
+        <FormAuth accion={registrarse} modo="registro" />
       </div>
 
       <Separador />
 
-      <FormAuth accion={registrarse} modo="registro" />
+      <BotonGoogle />
 
-      <p className="mt-6 text-sm text-muted">
+      <p className="mt-8 text-sm text-muted">
         ¿Ya tenés cuenta?{" "}
         <Link href="/login" className="underline underline-offset-4">
           Entrá

@@ -62,15 +62,17 @@ export default async function LoginPage({
         </p>
       )}
 
+      {/* El form primero: es la forma de entrar de quien ya tiene cuenta acá.
+          Google va abajo, como alternativa. */}
       <div className="mt-8">
-        <BotonGoogle destino={typeof destino === "string" ? destino : undefined} />
+        <FormAuth accion={entrar} modo="login" />
       </div>
 
       <Separador />
 
-      <FormAuth accion={entrar} modo="login" />
+      <BotonGoogle destino={typeof destino === "string" ? destino : undefined} />
 
-      <p className="mt-6 text-sm text-muted">
+      <p className="mt-8 text-sm text-muted">
         ¿Todavía no tenés cuenta?{" "}
         <Link href="/registro" className="underline underline-offset-4">
           Creá una

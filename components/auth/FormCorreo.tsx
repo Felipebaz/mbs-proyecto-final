@@ -52,6 +52,7 @@ export function FormCorreo({
           id="email"
           name="email"
           type="email"
+          placeholder="tu@correo.com"
           autoComplete="email"
           required
           className="rounded-lg border border-foreground/20 bg-transparent px-4 py-2.5 text-sm outline-none focus:border-foreground"

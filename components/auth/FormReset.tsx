@@ -34,6 +34,7 @@ export function FormReset({ token }: { token: string }) {
           id="password"
           name="password"
           type="password"
+          placeholder="Elegí una contraseña larga"
           // "new-password" hace que el gestor ofrezca generar una.
           autoComplete="new-password"
           required
