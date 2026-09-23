@@ -124,6 +124,13 @@ export default async function CarritoPage({
             )}
           </section>
 
+          <Link
+            href={`/checkout${botellasDevueltas > 0 ? `?devueltas=${botellasDevueltas}` : ""}`}
+            className="mt-6 block rounded-full bg-foreground px-5 py-3 text-center text-sm font-medium text-background"
+          >
+            Finalizar compra
+          </Link>
+
           {!usuario && (
             <p className="mt-6 text-sm text-muted">
               <Link
