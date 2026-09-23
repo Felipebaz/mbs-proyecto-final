@@ -3,6 +3,7 @@ import {
   boolean,
   check,
   index,
+  integer,
   jsonb,
   pgTable,
   primaryKey,
@@ -231,6 +232,191 @@ export const tokenCorreo = pgTable(
 );
 
 export type TokenCorreo = typeof tokenCorreo.$inferSelect;
+
+/* --------------------------------------------------------------- pedidos */
+
+/** De dónde salió el pedido. 'manual' es el que carga el admin por WhatsApp. */
+export const ORIGENES_PEDIDO = ["web", "manual"] as const;
+export type OrigenPedido = (typeof ORIGENES_PEDIDO)[number];
+
+/**
+ * Estados del pedido.
+ *
+ * `pendiente` es el estado inicial: el pedido existe pero nadie pagó. Sólo el
+ * webhook, después de consultarle a Mercado Pago, puede moverlo a `pagado`.
+ * La página de retorno del cliente NO puede: cualquiera puede abrir esa URL.
+ */
+export const ESTADOS_PEDIDO = [
+  "pendiente",
+  "pagado",
+  "rechazado",
+  "cancelado",
+  "reembolsado",
+  "entregado",
+] as const;
+export type EstadoPedido = (typeof ESTADOS_PEDIDO)[number];
+
+export const pedido = pgTable(
+  "pedido",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+
+    /**
+     * Lo que viaja a Mercado Pago como `external_reference` y vuelve en la
+     * notificación. Es público —aparece en URLs y en el panel de MP—, así que
+     * es un id aleatorio y no un número correlativo: con `pedido-3` cualquiera
+     * deduce cuántas ventas hubo y prueba `pedido-4`.
+     */
+    referencia: text("referencia").notNull().unique(),
+
+    // NULL para pedidos manuales de alguien sin cuenta.
+    usuarioId: uuid("usuario_id").references(() => usuario.id, {
+      onDelete: "set null",
+    }),
+
+    origen: text("origen").$type<OrigenPedido>().notNull().default("web"),
+    estado: text("estado").$type<EstadoPedido>().notNull().default("pendiente"),
+
+    /**
+     * Total en centésimos, calculado por el servidor desde el catálogo.
+     * Entero: en float, 1100.10 + 2200.20 no da lo que tiene que dar.
+     */
+    total: integer("total").notNull(),
+    moneda: text("moneda").notNull().default("UYU"),
+
+    // Datos de entrega. Se piden en el checkout y se guardan planos: si mañana
+    // el cliente cambia su dirección, el pedido viejo tiene que seguir
+    // diciendo a dónde se mandó.
+    nombreEntrega: text("nombre_entrega").notNull(),
+    telefono: text("telefono").notNull(),
+    direccion: text("direccion").notNull(),
+    notas: text("notas"),
+
+    /** Botellas que el cliente devuelve. Descuenta envases. */
+    botellasDevueltas: smallint("botellas_devueltas").notNull().default(0),
+
+    creadoEn: timestamp("creado_en", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    pagadoEn: timestamp("pagado_en", { withTimezone: true }),
+  },
+  (t) => [
+    index("pedido_usuario_idx").on(t.usuarioId),
+    index("pedido_estado_idx").on(t.estado, t.creadoEn),
+    check("pedido_total_no_negativo", sql`${t.total} >= 0`),
+    check(
+      "pedido_estado",
+      sql`${t.estado} in ('pendiente','pagado','rechazado','cancelado','reembolsado','entregado')`,
+    ),
+    check("pedido_origen", sql`${t.origen} in ('web','manual')`),
+  ],
+);
+
+/**
+ * Las líneas del pedido, con el precio CONGELADO al momento de comprar.
+ *
+ * Es la diferencia con el carrito: el carrito recalcula desde el catálogo en
+ * cada carga, el pedido no. Si mañana sube el jugo verde, un pedido de ayer
+ * tiene que seguir diciendo lo que la persona pagó — para el reclamo, para la
+ * contabilidad y para el cálculo de rentabilidad de la FASE 5.
+ */
+export const pedidoItem = pgTable(
+  "pedido_item",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+
+    pedidoId: uuid("pedido_id")
+      .notNull()
+      .references(() => pedido.id, { onDelete: "cascade" }),
+
+    sku: text("sku").notNull(),
+    /** Copia del nombre: si el producto se da de baja, el pedido sigue legible. */
+    descripcion: text("descripcion").notNull(),
+
+    cantidad: smallint("cantidad").notNull(),
+    /** Precio unitario en centésimos, sin envase. Congelado. */
+    precioUnitario: integer("precio_unitario").notNull(),
+    /** Envase de UNA botella, en centésimos. Congelado. */
+    envaseUnitario: integer("envase_unitario").notNull(),
+    /** Botellas que aporta esta línea. Un pack de 5 aporta 5. */
+    botellas: smallint("botellas").notNull(),
+
+    /** Para packs armables: qué eligió el cliente. */
+    configuracion: jsonb("configuracion").$type<string[] | null>(),
+  },
+  (t) => [
+    index("pedido_item_pedido_idx").on(t.pedidoId),
+    check("pedido_item_cantidad", sql`${t.cantidad} between 1 and 50`),
+    check("pedido_item_precio", sql`${t.precioUnitario} >= 0`),
+  ],
+);
+
+/**
+ * Pagos de Mercado Pago.
+ *
+ * Una fila por id de pago de MP. El UNIQUE es lo que hace idempotente al
+ * webhook: MP reintenta la misma notificación varias veces —y a veces manda
+ * dos a la vez—, así que sin esto un pedido se marcaría pagado dos veces.
+ */
+export const pago = pgTable(
+  "pago",
+  {
+    /** El id del pago en Mercado Pago. UNIQUE: es la clave de idempotencia. */
+    idPagoMp: text("id_pago_mp").primaryKey(),
+
+    pedidoId: uuid("pedido_id")
+      .notNull()
+      .references(() => pedido.id, { onDelete: "cascade" }),
+
+    /** Estado crudo de MP: approved, pending, in_process, rejected, refunded... */
+    estado: text("estado").notNull(),
+    /** Detalle de MP, útil para entender un rechazo. */
+    detalleEstado: text("detalle_estado"),
+
+    /** En centésimos, para comparar contra `pedido.total` sin redondeos. */
+    monto: integer("monto").notNull(),
+    moneda: text("moneda").notNull(),
+
+    creadoEn: timestamp("creado_en", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    actualizadoEn: timestamp("actualizado_en", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("pago_pedido_idx").on(t.pedidoId)],
+);
+
+/**
+ * Bitácora de notificaciones recibidas.
+ *
+ * Se escribe ANTES de procesar y se responde 200 enseguida: Mercado Pago corta
+ * a los 22 segundos y una notificación sin responder se reintenta. Además deja
+ * rastro de los intentos con firma inválida, que es lo que se querría mirar si
+ * alguien está probando el endpoint.
+ */
+export const eventoPago = pgTable(
+  "evento_pago",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    /** `x-request-id` de MP. Sirve para cruzar con su panel. */
+    requestId: text("request_id"),
+    tipo: text("tipo"),
+    idPagoMp: text("id_pago_mp"),
+    firmaValida: boolean("firma_valida").notNull(),
+    /** Por qué se rechazó, cuando se rechazó. */
+    motivoRechazo: text("motivo_rechazo"),
+    procesadoEn: timestamp("procesado_en", { withTimezone: true }),
+    recibidoEn: timestamp("recibido_en", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("evento_pago_recibido_idx").on(t.recibidoEn)],
+);
+
+export type Pedido = typeof pedido.$inferSelect;
+export type PedidoItem = typeof pedidoItem.$inferSelect;
+export type Pago = typeof pago.$inferSelect;
 
 export type Usuario = typeof usuario.$inferSelect;
 export type Sesion = typeof sesion.$inferSelect;
