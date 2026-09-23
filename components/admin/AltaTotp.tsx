@@ -11,7 +11,14 @@ import { FormCodigo } from "./FormCodigo";
  * sha256, así que ni nosotros los podemos volver a mostrar — si se pierden,
  * hay que generar unos nuevos.
  */
-export function AltaTotp({ qr, secreto }: { qr: string; secreto: string }) {
+interface AltaTotpProps {
+  /** El QR como data URI, generado en el servidor. */
+  readonly qr: string;
+  /** El secreto en base32, para quien no puede escanear. */
+  readonly secreto: string;
+}
+
+export function AltaTotp({ qr, secreto }: AltaTotpProps) {
   const [codigos, setCodigos] = useState<string[] | null>(null);
 
   if (codigos) {
@@ -19,8 +26,9 @@ export function AltaTotp({ qr, secreto }: { qr: string; secreto: string }) {
       <div>
         <h2 className="font-display text-2xl">Guardá estos códigos</h2>
         <p className="mt-2 text-sm text-muted">
-          Sirven para entrar si perdés el teléfono. Cada uno se usa una sola vez.
-          <strong className="text-foreground"> No los vas a poder ver de nuevo.</strong>
+          Sirven para entrar si perdés el teléfono. Cada uno se usa una sola
+          vez.{" "}
+          <strong className="text-foreground">No los vas a poder ver de nuevo.</strong>
         </p>
 
         <ul className="mt-6 grid grid-cols-2 gap-2 rounded-2xl border border-foreground/15 p-4 font-mono text-sm">

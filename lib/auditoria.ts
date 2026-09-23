@@ -3,8 +3,12 @@ import "server-only";
 import { desc, eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { db } from "@/lib/db/cliente";
-import { auditoria, type AccionAuditada, type Auditoria } from "@/lib/db/esquema";
-import type { Usuario } from "@/lib/db/esquema";
+import {
+  auditoria,
+  type AccionAuditada,
+  type Auditoria,
+  type Usuario,
+} from "@/lib/db/esquema";
 
 /**
  * Bitácora de acciones sensibles.
