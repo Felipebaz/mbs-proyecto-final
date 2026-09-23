@@ -56,6 +56,19 @@ export const usuario = pgTable("usuario", {
    */
   rol: text("rol").$type<Rol>().notNull().default("cliente"),
 
+  /*
+   * Secreto TOTP, CIFRADO con AES-256-GCM (ver lib/auth/cifrado.ts).
+   *
+   * A diferencia de una contraseña, esto no se puede hashear: el servidor
+   * necesita el valor original para calcular el código de 6 dígitos. Por eso
+   * se cifra: si se filtra la base, sin la clave —que vive en el entorno, no
+   * en la base— los secretos no sirven para generar códigos.
+   */
+  totpSecreto: text("totp_secreto"),
+
+  /** NULL = no terminó de activar el segundo factor. */
+  totpActivadoEn: timestamp("totp_activado_en", { withTimezone: true }),
+
   creadoEn: timestamp("creado_en", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [
   // El código normaliza a minúsculas antes de escribir. Esto lo hace cumplir
@@ -115,6 +128,16 @@ export const sesion = pgTable(
     creadaEn: timestamp("creada_en", { withTimezone: true })
       .notNull()
       .defaultNow(),
+
+    /**
+     * Cuándo pasó el segundo factor en ESTA sesión. NULL = no lo pasó.
+     *
+     * Vive en la sesión y no en el usuario a propósito: el segundo factor
+     * prueba quién sos en este dispositivo, ahora. Si viviera en el usuario,
+     * validarlo una vez dejaría entrar a todas las sesiones, incluida la que
+     * abrió el que te robó la contraseña.
+     */
+    factor2En: timestamp("factor2_en", { withTimezone: true }),
 
     // Para que el usuario pueda ver y cerrar sesiones, y para investigar abusos.
     ip: text("ip"),
@@ -417,6 +440,105 @@ export const eventoPago = pgTable(
 export type Pedido = typeof pedido.$inferSelect;
 export type PedidoItem = typeof pedidoItem.$inferSelect;
 export type Pago = typeof pago.$inferSelect;
+
+/* --------------------------------------------- códigos de respaldo 2FA */
+
+/**
+ * Códigos de un solo uso para entrar cuando no está el teléfono.
+ *
+ * Se guarda el sha256, igual que las sesiones: son aleatorios de 80 bits, así
+ * que no hay nada que adivinar por fuerza bruta y Argon2 no agregaría nada.
+ *
+ * Sin esto, perder el teléfono es perder el acceso al negocio.
+ */
+export const codigoRespaldo = pgTable(
+  "codigo_respaldo",
+  {
+    id: text("id").primaryKey(), // sha256(codigo)
+    usuarioId: uuid("usuario_id")
+      .notNull()
+      .references(() => usuario.id, { onDelete: "cascade" }),
+    usadoEn: timestamp("usado_en", { withTimezone: true }),
+    creadoEn: timestamp("creado_en", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("codigo_respaldo_usuario_idx").on(t.usuarioId)],
+);
+
+/* ------------------------------------------------------------ auditoría */
+
+/** Qué se registra. Se amplía acá y en el CHECK. */
+export const ACCIONES_AUDITADAS = [
+  "precio_cambiado",
+  "pedido_estado_cambiado",
+  "datos_exportados",
+  "rol_cambiado",
+  "2fa_activado",
+  "2fa_desactivado",
+  "login_admin",
+] as const;
+export type AccionAuditada = (typeof ACCIONES_AUDITADAS)[number];
+
+/**
+ * Bitácora de acciones sensibles. SÓLO INSERCIÓN.
+ *
+ * Una migración agrega un trigger que hace fallar cualquier UPDATE o DELETE.
+ * Sin eso, quien tenga acceso a la base puede borrar el rastro de lo que hizo
+ * —que es exactamente lo que haría alguien que no quiere que se vea—, y la
+ * bitácora deja de servir como evidencia.
+ */
+export const auditoria = pgTable(
+  "auditoria",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+
+    /*
+     * SIN foreign key a propósito.
+     *
+     * Una bitácora inmutable no puede tener referencias a datos que cambian.
+     * Con `on delete set null`, borrar un usuario dispara un UPDATE interno
+     * sobre esta tabla — y el trigger de sólo-inserción lo rechaza, así que
+     * el usuario no se puede borrar nunca más. Con `cascade` sería peor:
+     * borrar al autor borraría el rastro de lo que hizo, que es justo lo que
+     * haría alguien que no quiere que se vea.
+     *
+     * Entonces se guarda el id suelto, sin integridad referencial, y el correo
+     * se copia al lado. Es desnormalización deliberada: lo normal en una
+     * bitácora.
+     */
+    usuarioId: uuid("usuario_id"),
+
+    /** Copia del correo al momento de la acción. Sobrevive al borrado. */
+    usuarioEmail: text("usuario_email"),
+
+    accion: text("accion").$type<AccionAuditada>().notNull(),
+
+    /** Sobre qué: un id de pedido, un SKU. */
+    objetivo: text("objetivo"),
+
+    /** Detalle libre: valor anterior y nuevo, cuántas filas se exportaron. */
+    detalle: jsonb("detalle").$type<Record<string, unknown> | null>(),
+
+    ip: text("ip"),
+    userAgent: text("user_agent"),
+
+    ocurridoEn: timestamp("ocurrido_en", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("auditoria_ocurrido_idx").on(t.ocurridoEn),
+    index("auditoria_usuario_idx").on(t.usuarioId, t.ocurridoEn),
+    index("auditoria_accion_idx").on(t.accion, t.ocurridoEn),
+    check(
+      "auditoria_accion",
+      sql`${t.accion} in ('precio_cambiado','pedido_estado_cambiado','datos_exportados','rol_cambiado','2fa_activado','2fa_desactivado','login_admin')`,
+    ),
+  ],
+);
+
+export type Auditoria = typeof auditoria.$inferSelect;
 
 export type Usuario = typeof usuario.$inferSelect;
 export type Sesion = typeof sesion.$inferSelect;

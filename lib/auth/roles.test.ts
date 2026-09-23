@@ -43,18 +43,40 @@ vi.mock("next/navigation", () => ({
   },
 }));
 
-const { usuario } = await import("@/lib/db/esquema");
-const { crearSesion, escribirCookieSesion } = await import("./sesion");
-const { requerirAdmin, usuarioActual, aPublico } = await import("./dal");
+const { sesion, usuario } = await import("@/lib/db/esquema");
+const { crearSesion, escribirCookieSesion, marcarFactor2, _test: sesionTest } =
+  await import("./sesion");
+const { requerirAdmin, requerirReautenticacion, usuarioActual, aPublico } =
+  await import("./dal");
 
 const db = entorno.db;
 
-/** Crea el usuario y deja su sesión en la cookie, como si hubiera entrado. */
+/**
+ * Crea el usuario y deja su sesión en la cookie, como si hubiera entrado.
+ *
+ * A un admin se le activa el 2FA y se marca la sesión como verificada: es el
+ * estado normal después de entrar, y es lo que dejan probar los tests de rol
+ * sin mezclarse con los del segundo factor.
+ */
 async function entrarComo(email: string, rol: "cliente" | "admin" = "cliente") {
-  const [u] = await db.insert(usuario).values({ email, rol }).returning();
+  const [u] = await db
+    .insert(usuario)
+    .values({
+      email,
+      rol,
+      ...(rol === "admin"
+        ? { totpSecreto: "cifrado-de-mentira", totpActivadoEn: new Date() }
+        : {}),
+    })
+    .returning();
+
   const { token, expiraEn } = await crearSesion(u.id);
   await escribirCookieSesion(token, expiraEn);
-  return u;
+
+  const [s] = await db.select().from(sesion).where(eq(sesion.usuarioId, u.id));
+  if (rol === "admin") await marcarFactor2(s.id);
+
+  return { ...u, sesionId: s.id };
 }
 
 beforeEach(async () => {
@@ -183,15 +205,139 @@ describe("el rol no se puede tocar desde la app", () => {
     const permitidos = new Set([
       "lib/db/esquema.ts", // la declaración de la columna
       "lib/auth/dal.ts", // la LECTURA en requerirAdmin y aPublico
-      "lib/auth/roles.test.ts", // este archivo
     ]);
 
     const infractores = salida
       .split("\n")
       .filter(Boolean)
+      // Los tests crean usuarios con rol a propósito: es la única forma de
+      // probar la autorización. Lo que se vigila es el código de la aplicación.
+      .filter((f) => !f.endsWith(".test.ts") && !f.endsWith(".test.tsx"))
       .filter((f) => !permitidos.has(f));
 
     expect(infractores).toEqual([]);
+  });
+});
+
+describe("segundo factor en el panel", () => {
+  it("un admin SIN 2FA activado va a la pantalla de alta", async () => {
+    const [u] = await db
+      .insert(usuario)
+      .values({ email: "sin2fa@ejemplo.com", rol: "admin" })
+      .returning();
+    const { token, expiraEn } = await crearSesion(u.id);
+    await escribirCookieSesion(token, expiraEn);
+
+    /*
+     * Es el motivo por el que esta fase va ANTES del panel: una pantalla de
+     * admin protegida sólo con contraseña está a una contraseña filtrada de
+     * los pedidos, los precios y los datos de los clientes.
+     */
+    await expect(requerirAdmin()).rejects.toBeInstanceOf(Redirigido);
+    await requerirAdmin().catch((e) => {
+      expect(e.destino).toBe("/admin/2fa/alta");
+    });
+  });
+
+  it("con 2FA activado pero SIN verificar en esta sesión, pide el código", async () => {
+    const [u] = await db
+      .insert(usuario)
+      .values({
+        email: "conf@ejemplo.com",
+        rol: "admin",
+        totpSecreto: "cifrado",
+        totpActivadoEn: new Date(),
+      })
+      .returning();
+    const { token, expiraEn } = await crearSesion(u.id);
+    await escribirCookieSesion(token, expiraEn);
+
+    /*
+     * El segundo factor vive en la SESIÓN, no en el usuario. Si viviera en el
+     * usuario, validarlo una vez dejaría entrar a todas las sesiones abiertas
+     * —incluida la de quien robó la contraseña—.
+     */
+    await requerirAdmin().catch((e) => {
+      expect(e.destino).toBe("/admin/2fa/verificar");
+    });
+  });
+
+  it("con 2FA verificado, entra", async () => {
+    const jefa = await entrarComo("jefa@ejemplo.com", "admin");
+    expect((await requerirAdmin()).id).toBe(jefa.id);
+  });
+});
+
+describe("vida máxima de la sesión admin", () => {
+  it("a las 8 horas hay que volver a entrar, aunque la sesión siga viva", async () => {
+    const jefa = await entrarComo("jefa@ejemplo.com", "admin");
+
+    // Se envejece la sesión a mano, como si hubieran pasado 9 horas.
+    await db
+      .update(sesion)
+      .set({
+        creadaEn: new Date(Date.now() - sesionTest.VIDA_MAXIMA_ADMIN_MS - 60_000),
+      })
+      .where(eq(sesion.id, jefa.sesionId));
+
+    /*
+     * La sesión de cliente se desliza mientras haya actividad; esta no. Una
+     * sesión de cliente robada compra jugos; una de admin ve todos los pedidos,
+     * cambia precios y exporta datos.
+     */
+    await requerirAdmin().catch((e) => {
+      expect(e).toBeInstanceOf(Redirigido);
+      expect(e.destino).toContain("vencida");
+    });
+  });
+
+  it("dentro de las 8 horas sigue entrando", async () => {
+    const jefa = await entrarComo("jefa@ejemplo.com", "admin");
+
+    await db
+      .update(sesion)
+      .set({ creadaEn: new Date(Date.now() - 7 * 60 * 60 * 1000) })
+      .where(eq(sesion.id, jefa.sesionId));
+
+    expect((await requerirAdmin()).id).toBe(jefa.id);
+  });
+
+  it("un cliente NO tiene ese tope: su sesión se desliza", async () => {
+    const ana = await entrarComo("ana@ejemplo.com", "cliente");
+
+    await db
+      .update(sesion)
+      .set({ creadaEn: new Date(Date.now() - 20 * 60 * 60 * 1000) })
+      .where(eq(sesion.usuarioId, ana.id));
+
+    // Pedirle la contraseña a un cliente cada 8 horas sería fricción sin
+    // ganancia: lo peor que hace una sesión de cliente robada es comprar jugos.
+    expect(await usuarioActual()).not.toBeNull();
+  });
+});
+
+describe("requerirReautenticacion", () => {
+  it("deja pasar si el 2FA se verificó recién", async () => {
+    const jefa = await entrarComo("jefa@ejemplo.com", "admin");
+    expect((await requerirReautenticacion(15)).id).toBe(jefa.id);
+  });
+
+  it("pide el código de nuevo si pasó la ventana", async () => {
+    const jefa = await entrarComo("jefa@ejemplo.com", "admin");
+
+    await db
+      .update(sesion)
+      .set({ factor2En: new Date(Date.now() - 30 * 60_000) })
+      .where(eq(sesion.id, jefa.sesionId));
+
+    /*
+     * Para lo que no se puede deshacer: cambiar precios, exportar datos de
+     * clientes. Estar logueado hace seis horas no alcanza — si alguien se
+     * sentó en la computadora abierta, la sesión sigue siendo válida.
+     */
+    await requerirReautenticacion(15).catch((e) => {
+      expect(e.destino).toContain("reautenticar");
+    });
   });
 });
 
