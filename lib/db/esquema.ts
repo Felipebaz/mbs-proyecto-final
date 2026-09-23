@@ -172,6 +172,50 @@ export const carritoLinea = pgTable(
   ],
 );
 
+/* ------------------------------------------------- tokens de correo */
+
+/** Los dos motivos por los que hoy se manda un link con token. */
+export const TIPOS_TOKEN = ["verificacion", "reset"] as const;
+export type TipoToken = (typeof TIPOS_TOKEN)[number];
+
+export const tokenCorreo = pgTable(
+  "token_correo",
+  {
+    // sha256(token) en hex, igual que en `sesion`. El token en claro sólo
+    // existe dentro del mail: si se filtra esta tabla, lo que hay son hashes
+    // que no se pueden revertir a un link usable.
+    id: text("id").primaryKey(),
+
+    tipo: text("tipo").$type<TipoToken>().notNull(),
+
+    usuarioId: uuid("usuario_id")
+      .notNull()
+      .references(() => usuario.id, { onDelete: "cascade" }),
+
+    expiraEn: timestamp("expira_en", { withTimezone: true }).notNull(),
+
+    // NULL = sin usar. No se borra la fila al consumirlo: queda como registro
+    // de que ese token ya se gastó, y reusarlo falla de forma explícita.
+    usadoEn: timestamp("usado_en", { withTimezone: true }),
+
+    creadoEn: timestamp("creado_en", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    // Invalidar todos los tokens de reset de un usuario tiene que ser barato:
+    // se hace en cada cambio de contraseña.
+    index("token_correo_usuario_idx").on(t.usuarioId, t.tipo),
+    index("token_correo_expira_idx").on(t.expiraEn),
+    check(
+      "token_correo_tipo",
+      sql`${t.tipo} in ('verificacion', 'reset')`,
+    ),
+  ],
+);
+
+export type TokenCorreo = typeof tokenCorreo.$inferSelect;
+
 export type Usuario = typeof usuario.$inferSelect;
 export type Sesion = typeof sesion.$inferSelect;
 export type CarritoLinea = typeof carritoLinea.$inferSelect;

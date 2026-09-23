@@ -39,6 +39,21 @@ export const LoginSchema = z.object({
   password: z.string().min(1, { message: "Escribí tu contraseña." }).max(128),
 });
 
+export const RecuperarSchema = z.object({
+  email: Email,
+});
+
+export const ResetSchema = z.object({
+  // El token viaja en la URL. Se acota el largo para no pasarle a sha256 un
+  // megabyte que alguien mandó a mano.
+  token: z.string().trim().min(10).max(200),
+  password: Password,
+});
+
+export const ReenviarSchema = z.object({
+  email: Email,
+});
+
 export const AgregarSchema = z.object({
   sku: z.string().trim().min(1).max(40),
   cantidad: z.coerce.number().int().min(1).max(50),

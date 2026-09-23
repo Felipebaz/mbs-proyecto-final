@@ -34,7 +34,7 @@ export default async function LoginPage({
 }: PageProps<"/login">) {
   if (await usuarioActual()) redirect("/");
 
-  const { error, destino } = await searchParams;
+  const { error, destino, cambiada } = await searchParams;
   const mensaje = typeof error === "string" ? MENSAJES[error] : undefined;
 
   return (
@@ -43,6 +43,15 @@ export default async function LoginPage({
       <p className="mt-2 text-sm text-muted">
         Para ver tus pedidos y que el carrito te siga entre dispositivos.
       </p>
+
+      {cambiada && (
+        <p
+          role="status"
+          className="mt-6 rounded-lg border border-foreground/15 bg-foreground/5 px-4 py-3 text-sm"
+        >
+          Listo, tu contraseña cambió. Entrá con la nueva.
+        </p>
+      )}
 
       {mensaje && (
         <p
@@ -65,6 +74,12 @@ export default async function LoginPage({
         ¿Todavía no tenés cuenta?{" "}
         <Link href="/registro" className="underline underline-offset-4">
           Creá una
+        </Link>
+      </p>
+
+      <p className="mt-2 text-sm text-muted">
+        <Link href="/recuperar" className="underline underline-offset-4">
+          Me olvidé la contraseña
         </Link>
       </p>
     </main>
