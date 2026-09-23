@@ -1,5 +1,7 @@
+import { sql } from "drizzle-orm";
 import {
   boolean,
+  check,
   index,
   jsonb,
   pgTable,
@@ -40,7 +42,13 @@ export const usuario = pgTable("usuario", {
   passwordHash: text("password_hash"),
 
   creadoEn: timestamp("creado_en", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (t) => [
+  // El código normaliza a minúsculas antes de escribir. Esto lo hace cumplir
+  // igual si alguien inserta a mano o si mañana aparece otro camino de
+  // escritura: dos filas "Ana@x.com" y "ana@x.com" serían dos cuentas para la
+  // misma persona y el UNIQUE no las vería.
+  check("usuario_email_minusculas", sql`${t.email} = lower(${t.email})`),
+]);
 
 export const cuentaOauth = pgTable(
   "cuenta_oauth",
@@ -123,7 +131,15 @@ export const carrito = pgTable(
       .notNull()
       .defaultNow(),
   },
-  (t) => [index("carrito_actualizado_idx").on(t.actualizadoEn)],
+  (t) => [
+    index("carrito_actualizado_idx").on(t.actualizadoEn),
+    // Exactamente uno de los dos. Un carrito con ambos sería de dos personas a
+    // la vez; uno sin ninguno es una fila huérfana que nadie puede recuperar.
+    check(
+      "carrito_un_solo_dueno",
+      sql`(${t.usuarioId} is null) != (${t.cookieId} is null)`,
+    ),
+  ],
 );
 
 export const carritoLinea = pgTable(
@@ -148,7 +164,12 @@ export const carritoLinea = pgTable(
     // smallint + tope en la capa de dominio: `cantidad` viene del navegador.
     cantidad: smallint("cantidad").notNull(),
   },
-  (t) => [primaryKey({ columns: [t.carritoId, t.sku, t.huella] })],
+  (t) => [
+    primaryKey({ columns: [t.carritoId, t.sku, t.huella] }),
+    // El tope real lo pone `sanearCantidad`, pero esto es la última red: si un
+    // día aparece un camino de escritura que no pasa por ahí, la base lo frena.
+    check("carrito_linea_cantidad", sql`${t.cantidad} between 1 and 50`),
+  ],
 );
 
 export type Usuario = typeof usuario.$inferSelect;

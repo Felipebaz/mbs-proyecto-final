@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { BotonAgregar } from "@/components/carrito/BotonAgregar";
 import { Precio } from "@/components/producto/Precio";
 import { ProductoSimbolo } from "@/components/producto/ProductoSimbolo";
 import { SelectorTamano } from "@/components/producto/SelectorTamano";
@@ -217,23 +218,22 @@ export default async function ProductoPage({
                 varianteDefaultId={producto.varianteDefaultId}
                 nombreProducto={producto.nombre}
                 tamano="lg"
+                conBotonAgregar
               />
             ) : (
-              <Precio variante={varianteDefault(producto)} tamano="lg" />
+              <>
+                <Precio variante={varianteDefault(producto)} tamano="lg" />
+                {/* Una sola variante: no hay nada que elegir, el botón va suelto. */}
+                <div className="mt-6">
+                  <BotonAgregar
+                    sku={varianteDefault(producto).sku}
+                    nombre={producto.nombre}
+                    disponible={varianteDefault(producto).disponible}
+                  />
+                </div>
+              </>
             )}
           </div>
-
-          {/* TODO carrito: este botón queda inerte hasta que exista el
-              carrito. No se saca porque define el layout de la ficha. */}
-          <button
-            type="button"
-            disabled
-            className="mt-6 w-full rounded-full bg-foreground px-6 py-3
-                       text-sm font-medium text-background disabled:opacity-40
-                       sm:w-auto"
-          >
-            Agregar al carrito
-          </button>
 
           <p className="mt-8 leading-relaxed">{producto.descripcion}</p>
         </div>

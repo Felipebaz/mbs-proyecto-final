@@ -32,6 +32,9 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# ...menos el ejemplo: no tiene secretos y es la documentación de qué variables
+# hacen falta. Sin esto, quien clone el repo no sabe qué completar.
+!.env.example
 
 # vercel
 .vercel

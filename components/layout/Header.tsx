@@ -1,4 +1,6 @@
+import { Suspense } from "react";
 import Link from "next/link";
+import { SesionNav, SesionNavFallback } from "./SesionNav";
 
 /**
  * Header del sitio. Vive en layout.tsx, así que aparece en todas las rutas.
@@ -37,8 +39,12 @@ export function Header() {
                 Sobre nosotros
               </Link>
             </li>
-            {/* TODO carrito: acá va <CartIndicator />, el primer componente
-                cliente del proyecto. Necesita el Context del carrito. */}
+            {/* Lo único del header que depende de quién sos. Aislado en su
+                propio componente y suspendido: así el resto de la página se
+                prerenderiza igual y esto llega por streaming. */}
+            <Suspense fallback={<SesionNavFallback />}>
+              <SesionNav />
+            </Suspense>
           </ul>
         </nav>
       </div>

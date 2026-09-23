@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { BotonAgregar } from "@/components/carrito/BotonAgregar";
 import { Precio } from "@/components/producto/Precio";
 import { type Variante } from "@/types/producto";
 
@@ -24,6 +25,15 @@ interface SelectorTamanoProps {
   nombreProducto: string;
   /** "sm" en la card, "lg" en la ficha. */
   tamano?: "sm" | "lg";
+  /**
+   * Renderiza el botón de agregar acá adentro.
+   *
+   * Tiene que vivir en este componente y no al lado: el SKU que se agrega es el
+   * de la variante elegida, y esa elección es estado de acá. Un botón afuera
+   * agregaría siempre la variante por defecto —el cliente elige 910 ml y le
+   * llega la de 330.
+   */
+  conBotonAgregar?: boolean;
 }
 
 export function SelectorTamano({
@@ -31,6 +41,7 @@ export function SelectorTamano({
   varianteDefaultId,
   nombreProducto,
   tamano = "sm",
+  conBotonAgregar = false,
 }: SelectorTamanoProps) {
   const grande = tamano === "lg";
   const [seleccionadaId, setSeleccionadaId] = useState(varianteDefaultId);
@@ -76,6 +87,16 @@ export function SelectorTamano({
       <div className={grande ? "mt-4" : "mt-1.5"}>
         <Precio variante={seleccionada} tamano={tamano} />
       </div>
+
+      {conBotonAgregar && (
+        <div className="mt-6">
+          <BotonAgregar
+            sku={seleccionada.sku}
+            nombre={`${nombreProducto} ${seleccionada.nombre}`}
+            disponible={seleccionada.disponible}
+          />
+        </div>
+      )}
     </div>
   );
 }

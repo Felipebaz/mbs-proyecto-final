@@ -41,15 +41,29 @@ function urlDeConexion(): string {
 
 // Un pool por proceso. En dev, Next recarga los módulos en cada cambio: sin
 // esto quedan pools colgados hasta agotar las conexiones de Neon.
-const global_ = globalThis as unknown as { _pool?: Pool };
+const global_ = globalThis as unknown as {
+  _pool?: Pool;
+  _db?: ReturnType<typeof construir>;
+};
 
-function pool(): Pool {
-  if (!global_._pool) {
-    global_._pool = new Pool({ connectionString: urlDeConexion() });
-  }
-  return global_._pool;
+function construir() {
+  global_._pool ??= new Pool({ connectionString: urlDeConexion() });
+  return drizzle(global_._pool, { schema: esquema });
 }
 
-export const db = drizzle(pool(), { schema: esquema });
+/**
+ * Se conecta en la primera query, no al importar el módulo.
+ *
+ * Importa para el build: `next build` importa cada página para prerenderizarla,
+ * y varias importan esto en cadena. Si la conexión se armara en el import, el
+ * build fallaría entero en cualquier entorno sin DATABASE_URL —incluido CI, que
+ * no necesita la base para compilar.
+ */
+export const db = new Proxy({} as ReturnType<typeof construir>, {
+  get(_destino, propiedad, receptor) {
+    global_._db ??= construir();
+    return Reflect.get(global_._db, propiedad, receptor);
+  },
+});
 
-export type DB = typeof db;
+export type DB = ReturnType<typeof construir>;

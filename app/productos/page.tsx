@@ -9,6 +9,16 @@ import {
 } from "@/lib/catalogo/queries";
 import type { Producto } from "@/types/producto";
 
+/**
+ * Ruta bloqueante: el filtro `?categoria=` se lee arriba de todo y decide qué
+ * grillas se arman, así que no hay shell útil antes de conocerlo.
+ *
+ * Ya era dinámica antes de PPR, así que esto no cambia nada. Para volverla
+ * estática habría que pasar el filtro a la ruta (`/productos/jugos`) en vez de
+ * a la query — mejor para SEO también, pero es otro laburo.
+ */
+export const instant = false;
+
 export const metadata: Metadata = {
   title: "Productos",
   description:
