@@ -47,6 +47,17 @@ export const LIMITES = {
   registroPorIp: { maximo: 5, ventanaMs: 60 * 60_000 },
   /** Inicio del flujo OAuth: cada uno escribe una cookie de estado. */
   oauthPorIp: { maximo: 20, ventanaMs: 15 * 60_000 },
+
+  /*
+   * Reset y reenvío de verificación mandan un mail cada vez. Sin tope, son dos
+   * cosas a la vez: una forma de usar nuestro dominio para inundar la casilla
+   * de alguien, y una forma de quemarnos la reputación de envío con Resend.
+   *
+   * Por cuenta es el que importa acá: el ataque apunta a UNA casilla.
+   */
+  resetPorCuenta: { maximo: 3, ventanaMs: 60 * 60_000 },
+  resetPorIp: { maximo: 10, ventanaMs: 60 * 60_000 },
+  verificacionPorCuenta: { maximo: 3, ventanaMs: 60 * 60_000 },
 } as const satisfies Record<string, Limite>;
 
 export interface Resultado {

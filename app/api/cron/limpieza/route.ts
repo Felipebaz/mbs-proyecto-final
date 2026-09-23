@@ -2,6 +2,7 @@ import { timingSafeEqual } from "node:crypto";
 import { connection, NextResponse, type NextRequest } from "next/server";
 import { purgarCarritosAbandonados } from "@/lib/carrito/repositorio";
 import { purgarSesionesVencidas } from "@/lib/auth/sesion";
+import { purgarTokensVencidos } from "@/lib/auth/tokens";
 
 /**
  * Limpieza periódica. Sin esto, `sesion` crece con cada login que nunca cerró
@@ -39,6 +40,7 @@ export async function GET(request: NextRequest) {
 
   await purgarSesionesVencidas();
   await purgarCarritosAbandonados();
+  await purgarTokensVencidos();
 
   return NextResponse.json({ ok: true, momento: new Date().toISOString() });
 }

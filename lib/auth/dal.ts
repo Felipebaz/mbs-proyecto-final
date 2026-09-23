@@ -41,6 +41,22 @@ export async function exigirUsuario(): Promise<Usuario> {
 }
 
 /**
+ * Exige sesión Y correo verificado.
+ *
+ * Para el checkout de la FASE 3: navegar sin verificar se puede, pagar no. Un
+ * pedido pagado contra una dirección que nadie confirmó no tiene a dónde mandar
+ * la confirmación, y es el camino cómodo para pedir a nombre de otro.
+ *
+ * Tiene que llamarse dentro de la server action que cobra, no sólo esconder el
+ * botón: la action es un POST que cualquiera puede mandar sin pasar por la UI.
+ */
+export async function exigirEmailVerificado(): Promise<Usuario> {
+  const usuario = await exigirUsuario();
+  if (!usuario.emailVerificado) redirect("/verificar/pendiente");
+  return usuario;
+}
+
+/**
  * Lo que se le puede mandar al navegador.
  *
  * `Usuario` trae `passwordHash`. Devolver la fila cruda desde un Server Action
