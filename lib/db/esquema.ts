@@ -23,6 +23,10 @@ import {
 
 /* ------------------------------------------------------------- identidad */
 
+/** Roles. Se amplía acá y en el CHECK de la tabla, nunca sólo en el tipo. */
+export const ROLES = ["cliente", "admin"] as const;
+export type Rol = (typeof ROLES)[number];
+
 export const usuario = pgTable("usuario", {
   id: uuid("id").primaryKey().defaultRandom(),
 
@@ -41,6 +45,16 @@ export const usuario = pgTable("usuario", {
   // Nunca se expone fuera de `lib/auth/password.ts`.
   passwordHash: text("password_hash"),
 
+  /*
+   * Arranca siempre en 'cliente' y NINGÚN formulario ni server action lo toca.
+   *
+   * Es la regla que sostiene todo el panel: si un campo `rol` llegara desde un
+   * formulario, cualquiera se haría admin mandando el POST a mano. Se cambia
+   * sólo desde `npm run admin:promover`, que corre contra la base y exige
+   * acceso a las credenciales de producción.
+   */
+  rol: text("rol").$type<Rol>().notNull().default("cliente"),
+
   creadoEn: timestamp("creado_en", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [
   // El código normaliza a minúsculas antes de escribir. Esto lo hace cumplir
@@ -48,6 +62,8 @@ export const usuario = pgTable("usuario", {
   // escritura: dos filas "Ana@x.com" y "ana@x.com" serían dos cuentas para la
   // misma persona y el UNIQUE no las vería.
   check("usuario_email_minusculas", sql`${t.email} = lower(${t.email})`),
+  // Última red: un UPDATE a mano con un rol inventado no entra.
+  check("usuario_rol", sql`${t.rol} in ('cliente', 'admin')`),
 ]);
 
 export const cuentaOauth = pgTable(
