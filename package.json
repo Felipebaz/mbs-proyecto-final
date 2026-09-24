@@ -12,7 +12,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "next typegen && tsc --noEmit",
     "prepare": "sh scripts/preparar-hooks.sh",
     "secretos": "gitleaks detect --redact --verbose",
     "admin:promover": "node --env-file-if-exists=.env.local scripts/promover-admin.mts"
