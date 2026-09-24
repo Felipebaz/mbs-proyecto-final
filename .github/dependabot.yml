@@ -1,0 +1,37 @@
+version: 2
+
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+
+    # Las de parche y menor van juntas en un PR: son la mayoría y revisarlas de
+    # a una es lo que hace que nadie las revise.
+    groups:
+      menores:
+        update-types:
+          - minor
+          - patch
+
+    # Las mayores van sueltas: traen cambios que rompen y necesitan leerse.
+    # Next y React se actualizan a mano, con el sitio andando al lado.
+    ignore:
+      - dependency-name: next
+        update-types: ["version-update:semver-major"]
+      - dependency-name: react
+        update-types: ["version-update:semver-major"]
+      - dependency-name: react-dom
+        update-types: ["version-update:semver-major"]
+
+    commit-message:
+      prefix: "chore(deps)"
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: "chore(ci)"

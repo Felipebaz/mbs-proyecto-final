@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { logError } from "@/lib/log";
 import { exigirEmailVerificado } from "@/lib/auth/dal";
 import { EntregaSchema } from "@/lib/auth/validacion";
 import { obtenerCarrito, vaciarCarrito } from "@/lib/carrito/repositorio";
@@ -103,7 +104,9 @@ export async function irAPagar(
   } catch (e) {
     if (e instanceof ErrorPedido) return { error: e.message };
 
-    console.error("[checkout] no se pudo iniciar el pago:", e);
+    // El error puede venir del SDK de Mercado Pago y traer adentro la
+    // petición completa —con el token de acceso y el correo del pagador—.
+    logError("[checkout] no se pudo iniciar el pago", e);
     return {
       error: "No pudimos iniciar el pago. Probá de nuevo en un momento.",
     };

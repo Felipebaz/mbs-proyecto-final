@@ -112,6 +112,24 @@ const nextConfig: NextConfig = {
             key: "Permissions-Policy",
             value: "camera=(), microphone=(), geolocation=(), payment=()",
           },
+
+          /*
+           * Corta la referencia `window.opener`: una pestaña que abramos no
+           * puede manipular la nuestra, ni la que nos abrió a nosotros.
+           *
+           * Va `same-origin-allow-popups` y no `same-origin` porque el flujo de
+           * Mercado Pago abre su propia ventana en algunos medios de pago, y
+           * `same-origin` a secas la rompe. En el panel, que no abre nada de
+           * afuera, `proxy.ts` pone el `same-origin` estricto.
+           */
+          {
+            key: "Cross-Origin-Opener-Policy",
+            value: "same-origin-allow-popups",
+          },
+
+          // Que el navegador no pre-resuelva DNS de dominios que aparezcan en
+          // contenido inyectado.
+          { key: "X-DNS-Prefetch-Control", value: "off" },
         ],
       },
     ];

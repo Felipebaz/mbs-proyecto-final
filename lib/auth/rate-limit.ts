@@ -2,6 +2,7 @@ import "server-only";
 
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
+import { logError } from "@/lib/log";
 
 /**
  * Limitador de intentos.
@@ -176,7 +177,9 @@ export async function consumir(
      * rato sin poder vender. Para el panel admin la cuenta cambia, y por eso
      * ahí además hay segundo factor (FASE 4).
      */
-    console.error(`[rate-limit] Redis no respondió (${nombre}), se deja pasar:`, e);
+    // El error de Upstash puede traer la clave, que en los límites por cuenta
+    // es el correo del usuario.
+    logError("[rate-limit] Redis no respondió, se deja pasar", e, { limite: nombre });
     return { permitido: true, esperaSegundos: 0 };
   }
 }
@@ -195,7 +198,7 @@ export async function liberar(
     await limitador(nombre, LIMITES[nombre]).resetUsedTokens(identificador);
   } catch (e) {
     // No poder limpiar el contador no puede tirar abajo un login exitoso.
-    console.error(`[rate-limit] no se pudo liberar ${nombre}:`, e);
+    logError("[rate-limit] no se pudo liberar", e, { limite: nombre });
   }
 }
 

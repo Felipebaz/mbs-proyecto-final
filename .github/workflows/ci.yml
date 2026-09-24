@@ -1,0 +1,79 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Un push nuevo sobre la misma rama cancela la corrida anterior: no tiene
+# sentido esperar el resultado de un commit que ya quedó viejo.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      # `npm ci` y no `npm install`: instala exactamente lo del lockfile y
+      # falla si package.json y el lockfile no coinciden.
+      # `prepare` corre solo y configura core.hooksPath. En CI no molesta:
+      # apunta git a .githooks/ y nadie commitea desde acá.
+      - name: Instalar
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Tipos
+        run: npm run typecheck
+
+      # Los tests levantan Postgres en proceso (PGlite): no hace falta servicio.
+      - name: Tests
+        run: npm test
+
+      # Sin DATABASE_URL a propósito: el build no debe necesitar base. Si algún
+      # día la necesita, este paso lo caza acá y no en el deploy.
+      - name: Build
+        run: npm run build
+
+  seguridad:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Todo el historial: gitleaks escanea los commits, no sólo el árbol.
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      # Sólo dependencias de producción. Una vulnerabilidad en una herramienta
+      # de build no la puede explotar nadie desde internet, y mezclarlas hace
+      # que el paso esté siempre en rojo y se ignore.
+      - name: Vulnerabilidades en producción
+        run: npm audit --omit=dev --audit-level=moderate
+
+      # Informativo: no frena el merge, pero deja el registro.
+      - name: Vulnerabilidades en desarrollo (informativo)
+        run: npm audit --audit-level=high || true
+
+      - name: Secretos en el historial
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
