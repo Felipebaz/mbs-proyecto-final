@@ -23,13 +23,16 @@ export class ErrorAdmin extends Error {}
  * Transiciones permitidas.
  *
  * No es cualquier estado a cualquier estado. Un pedido entregado no vuelve a
- * pendiente, y uno rechazado no salta a entregado sin pasar por pagado. Sin
+ * pendiente, y uno rechazado no salta a entregado sin pasar por recibido. Sin
  * esta tabla, un click equivocado deja el pedido en un estado que no describe
  * nada de lo que pasó, y después nadie entiende el historial.
  */
 const TRANSICIONES: Record<EstadoPedido, readonly EstadoPedido[]> = {
-  pendiente: ["pagado", "cancelado"],
-  pagado: ["entregado", "reembolsado"],
+  // `recibido` a mano es el pedido manual que se cobró en efectivo o transferencia.
+  pendiente: ["recibido", "cancelado"],
+  // Ya hay plata de por medio: echarse atrás es devolverla, no cancelar.
+  recibido: ["aceptado", "reembolsado"],
+  aceptado: ["entregado", "reembolsado"],
   entregado: ["reembolsado"],
   rechazado: ["pendiente", "cancelado"],
   cancelado: [],
@@ -127,7 +130,7 @@ export async function cambiarEstadoPedido(
     .update(pedido)
     .set({
       estado: nuevo,
-      ...(nuevo === "pagado" && !actual.pagadoEn ? { pagadoEn: new Date() } : {}),
+      ...(nuevo === "recibido" && !actual.pagadoEn ? { pagadoEn: new Date() } : {}),
     })
     .where(and(eq(pedido.id, pedidoId), eq(pedido.estado, actual.estado)))
     .returning({ id: pedido.id });

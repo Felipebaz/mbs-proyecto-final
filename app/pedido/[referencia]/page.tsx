@@ -123,9 +123,13 @@ function Estado({ estado }: { estado: string }) {
       detalle:
         "Puede tardar unos segundos. Esta página se actualiza sola — no hace falta que hagas nada.",
     },
-    pagado: {
+    recibido: {
       titulo: "¡Listo, pagaste!",
-      detalle: "Te mandamos un correo con el detalle. Coordinamos la entrega por teléfono.",
+      detalle: "Te mandamos un correo con el detalle. En breve confirmamos tu pedido.",
+    },
+    aceptado: {
+      titulo: "Pedido confirmado",
+      detalle: "Ya lo estamos preparando. Coordinamos la entrega por teléfono.",
     },
     rechazado: {
       titulo: "El pago no se aprobó",

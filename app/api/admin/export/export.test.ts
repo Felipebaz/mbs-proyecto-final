@@ -182,7 +182,7 @@ describe("un admin verificado exporta", () => {
       .values({
         referencia: "ped_export",
         total: 132000,
-        estado: "pagado",
+        estado: "recibido",
         nombreEntrega: "Ana Pérez",
         telefono: "099123456",
         direccion: "Rivera 1234",
@@ -240,7 +240,7 @@ describe("un admin verificado exporta", () => {
     await db.insert(pedido).values({
       referencia: "ped_malicioso",
       total: 1000,
-      estado: "pagado",
+      estado: "recibido",
       // El nombre lo escribió un desconocido en el checkout.
       nombreEntrega: '=HYPERLINK("http://sitio-malo","Cobrar")',
       telefono: "099",
