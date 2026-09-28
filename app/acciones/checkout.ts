@@ -18,7 +18,7 @@ import { urlBase } from "@/lib/email";
  *      POST que cualquiera puede mandar sin pasar por la pantalla.
  *   2. el precio se recalcula desde el catálogo dentro de `crearPedido()`, no
  *      se lee del formulario
- *   3. el pedido nace `pendiente`; sólo el webhook puede pasarlo a `pagado`
+ *   3. el pedido nace `pendiente`; sólo el webhook puede pasarlo a `recibido`
  */
 
 export interface EstadoCheckout {
