@@ -1,8 +1,14 @@
 import { randomBytes } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
+import {
+  decidirPorHost,
+  esRutaPanel,
+  HEADER_HOST_PANEL,
+} from "@/lib/panel/host";
 
 /**
- * CSP estricta con nonce, sólo para el panel.
+ * Dos trabajos: separar el panel de la tienda por host (ver
+ * `lib/panel/host.ts`) y poner una CSP estricta con nonce en el panel.
  *
  * [decisión] Por qué acá y no para todo el sitio.
  *
@@ -25,6 +31,56 @@ import { NextResponse, type NextRequest } from "next/server";
  */
 
 export function proxy(request: NextRequest) {
+  const { pathname, search } = request.nextUrl;
+
+  const decision = decidirPorHost({
+    host: request.headers.get("host") ?? request.nextUrl.host,
+    pathname,
+    search,
+    hostPanel: process.env.ADMIN_HOST,
+    urlTienda: process.env.APP_URL ?? "http://localhost:3000",
+  });
+
+  if (decision.tipo === "no-encontrado") {
+    // Reescribir a una ruta que no existe da el 404 normal de la app.
+    return NextResponse.rewrite(new URL("/_no-existe", request.url));
+  }
+  if (decision.tipo === "redirigir") {
+    const destino = new URL(decision.url, request.url);
+
+    /*
+     * Next vuelve relativo todo `Location` cuyo host coincida con el de
+     * `request.url`. En desarrollo ese host es siempre `localhost:3000`,
+     * aunque se haya entrado por `admin.localhost`, así que el redirect a la
+     * tienda llegaría como `/carrito` y el navegador se quedaría en el panel,
+     * en loop. En ese caso se deja pasar: es sólo orden, no seguridad.
+     * En Vercel `request.url` trae el host real y no pasa.
+     */
+    const seriaLoop =
+      destino.host === request.nextUrl.host && destino.pathname === pathname;
+
+    if (!seriaLoop) return NextResponse.redirect(destino);
+  }
+
+  /*
+   * El header lo pone SIEMPRE el proxy, pisando lo que haya mandado el
+   * cliente: si no, cualquiera podría decirle a la página que está en el
+   * panel. Igual sólo cambia qué se muestra en el login, nunca un permiso.
+   */
+  const headers = new Headers(request.headers);
+  headers.delete(HEADER_HOST_PANEL);
+  // Un redirect que no se hizo (ver arriba) sólo sale del subdominio del panel.
+  const esHostPanel = decision.tipo === "seguir" ? decision.esHostPanel : true;
+  if (esHostPanel) headers.set(HEADER_HOST_PANEL, "1");
+
+  if (!esRutaPanel(pathname)) {
+    return NextResponse.next({ request: { headers } });
+  }
+
+  return conCspDelPanel(headers);
+}
+
+function conCspDelPanel(headers: Headers) {
   const nonce = randomBytes(16).toString("base64");
   const enDesarrollo = process.env.NODE_ENV === "development";
 
@@ -54,7 +110,6 @@ export function proxy(request: NextRequest) {
 
   // El header en el request es lo que deja a Next pasarle el nonce a sus
   // propios scripts de hidratación.
-  const headers = new Headers(request.headers);
   headers.set("x-nonce", nonce);
   headers.set("Content-Security-Policy", csp);
 
@@ -80,9 +135,13 @@ export function proxy(request: NextRequest) {
 }
 
 /**
- * Sólo el panel. El matcher tiene que ser literal: Next lo lee en tiempo de
- * build para armar el ruteo, así que no acepta una variable.
+ * Todo menos los estáticos: para separar la tienda del panel por host, el
+ * proxy tiene que ver también las rutas de la tienda. No consulta la base ni
+ * hace I/O, así que correr en cada request cuesta microsegundos.
+ *
+ * El matcher tiene que ser literal: Next lo lee en tiempo de build para armar
+ * el ruteo, así que no acepta una variable.
  */
 export const config = {
-  matcher: ["/admin/:path*", "/api/admin/:path*"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };
