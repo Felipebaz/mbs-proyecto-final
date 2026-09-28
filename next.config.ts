@@ -29,9 +29,13 @@ import type { NextConfig } from "next";
  * Cuando haya rutas dinámicas donde valga la pena (checkout con datos de pago),
  * se agrega CSP con nonce SÓLO para esas, vía `proxy.ts` con matcher.
  */
+const enDesarrollo = process.env.NODE_ENV === "development";
+
 const csp = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline'",
+  // En desarrollo React usa eval para reconstruir los stacks de error del
+  // servidor; sin 'unsafe-eval' tira un error en consola. En producción no.
+  `script-src 'self' 'unsafe-inline'${enDesarrollo ? " 'unsafe-eval'" : ""}`,
   // Tailwind v4 inyecta estilos inline en dev; en prod son archivos.
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' blob: data:",
