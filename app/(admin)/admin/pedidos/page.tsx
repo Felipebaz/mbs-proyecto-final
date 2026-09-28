@@ -20,7 +20,9 @@ const ETIQUETA_ESTADO: Record<string, string> = {
   aceptado: "Aceptar",
   entregado: "Marcar entregado",
   cancelado: "Cancelar",
-  reembolsado: "Devolver pago",
+  // Sólo registra el estado: la plata se devuelve desde Mercado Pago (o en
+  // mano). Si la devolución sale por MP, el webhook lo marca solo.
+  reembolsado: "Marcar reembolsado",
 };
 
 export default async function PedidosPage() {
