@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { entrar } from "@/app/acciones/auth";
 import { BotonGoogle } from "@/components/auth/BotonGoogle";
 import { FormAuth } from "@/components/auth/FormAuth";
 import { Separador } from "@/components/auth/Separador";
 import { usuarioActual } from "@/lib/auth/dal";
+import { HEADER_HOST_PANEL } from "@/lib/panel/host";
 
 /**
  * Ruta bloqueante: no hay shell estático que valga.
@@ -37,11 +39,24 @@ export default async function LoginPage({
   const { error, destino, cambiada } = await searchParams;
   const mensaje = typeof error === "string" ? MENSAJES[error] : undefined;
 
+  /*
+   * En el subdominio del panel no hay Google ni registro.
+   *
+   * Google vuelve siempre a GOOGLE_REDIRECT_URI, que está en el dominio de la
+   * tienda: la sesión quedaría en la tienda y no en el panel. Y crear cuenta
+   * desde el panel no tiene sentido — el rol admin se da con un script.
+   */
+  const enPanel = (await headers()).get(HEADER_HOST_PANEL) === "1";
+
   return (
     <main className="mx-auto w-full max-w-md flex-1 px-5 py-16 sm:px-8">
-      <h1 className="font-display text-3xl">Entrar</h1>
+      <h1 className="font-display text-3xl">
+        {enPanel ? "Entrar al panel" : "Entrar"}
+      </h1>
       <p className="mt-2 text-sm text-muted">
-        Para ver tus pedidos y que el carrito te siga entre dispositivos.
+        {enPanel
+          ? "Con tu cuenta de administrador. Después te pide el segundo factor."
+          : "Para ver tus pedidos y que el carrito te siga entre dispositivos."}
       </p>
 
       {cambiada && (
@@ -68,16 +83,20 @@ export default async function LoginPage({
         <FormAuth accion={entrar} modo="login" />
       </div>
 
-      <Separador />
+      {!enPanel && (
+        <>
+          <Separador />
 
-      <BotonGoogle destino={typeof destino === "string" ? destino : undefined} />
+          <BotonGoogle destino={typeof destino === "string" ? destino : undefined} />
 
-      <p className="mt-8 text-sm text-muted">
-        ¿Todavía no tenés cuenta?{" "}
-        <Link href="/registro" className="underline underline-offset-4">
-          Creá una
-        </Link>
-      </p>
+          <p className="mt-8 text-sm text-muted">
+            ¿Todavía no tenés cuenta?{" "}
+            <Link href="/registro" className="underline underline-offset-4">
+              Creá una
+            </Link>
+          </p>
+        </>
+      )}
 
       <p className="mt-2 text-sm text-muted">
         <Link href="/recuperar" className="underline underline-offset-4">
