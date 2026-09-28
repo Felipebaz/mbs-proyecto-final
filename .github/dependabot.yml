@@ -34,6 +34,10 @@ updates:
       # Vercel). Con tipos más nuevos TypeScript acepta APIs que no existen.
       - dependency-name: "@types/node"
         update-types: ["version-update:semver-major"]
+      # TypeScript 7 es el compilador nuevo (reescrito en Go). Se sube a mano
+      # cuando Next y typescript-eslint lo soporten oficialmente.
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
 
     commit-message:
       prefix: "chore(deps)"
