@@ -24,7 +24,8 @@ export default async function AdminPage() {
   ]);
 
   const pendientes = resumen.find((r) => r.estado === "pendiente");
-  const pagados = resumen.find((r) => r.estado === "pagado");
+  const recibidos = resumen.find((r) => r.estado === "recibido");
+  const aceptados = resumen.find((r) => r.estado === "aceptado");
 
   return (
     <main>
@@ -37,8 +38,12 @@ export default async function AdminPage() {
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Tarjeta
           titulo="A preparar"
-          valor={String((pagados?.cantidad ?? 0) + (pendientes?.cantidad ?? 0))}
-          detalle={`${pagados?.cantidad ?? 0} pagados, ${pendientes?.cantidad ?? 0} sin confirmar`}
+          valor={String(
+            (recibidos?.cantidad ?? 0) +
+              (aceptados?.cantidad ?? 0) +
+              (pendientes?.cantidad ?? 0),
+          )}
+          detalle={`${recibidos?.cantidad ?? 0} por aceptar, ${aceptados?.cantidad ?? 0} aceptados, ${pendientes?.cantidad ?? 0} sin pagar`}
           href="/admin/pedidos"
         />
         <Tarjeta

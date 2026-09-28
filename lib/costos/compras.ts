@@ -20,7 +20,7 @@ import { preciosVigentes } from "./ingredientes";
  */
 
 /** Cuentan para la compra: lo pagado es seguro, lo pendiente puede caerse. */
-const ESTADOS_A_PRODUCIR = ["pendiente", "pagado"] as const;
+const ESTADOS_A_PRODUCIR = ["pendiente", "recibido", "aceptado"] as const;
 
 export interface LineaCompra {
   ingredienteId: string;
@@ -107,7 +107,7 @@ export async function listaDeCompra(
   const pendientes = new Set<string>();
 
   for (const fila of filas) {
-    if (fila.estado === "pagado") confirmados.add(fila.pedidoId);
+    if (fila.estado !== "pendiente") confirmados.add(fila.pedidoId);
     else pendientes.add(fila.pedidoId);
 
     if (fila.sku === "ENVASE") continue;
@@ -124,7 +124,7 @@ export async function listaDeCompra(
 
     for (const item of aProducir) {
       const acumulado = botellas.get(item.sku) ?? { confirmadas: 0, pendientes: 0 };
-      if (fila.estado === "pagado") acumulado.confirmadas += item.cantidad;
+      if (fila.estado !== "pendiente") acumulado.confirmadas += item.cantidad;
       else acumulado.pendientes += item.cantidad;
       botellas.set(item.sku, acumulado);
     }

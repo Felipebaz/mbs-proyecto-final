@@ -58,7 +58,7 @@ async function pedidoPagado(
     .values({
       referencia: `ped_${Math.random().toString(36).slice(2, 12)}`,
       total: precioUnitario * cantidad,
-      estado: "pagado",
+      estado: "recibido",
       nombreEntrega: "Ana",
       telefono: "099123456",
       direccion: "Rivera 1234",

@@ -13,13 +13,16 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
+/** Texto del botón que lleva a cada estado. */
 const ETIQUETA_ESTADO: Record<string, string> = {
-  pendiente: "Marcar pagado",
-  pagado: "Marcar entregado",
-  entregado: "Reembolsar",
+  pendiente: "Reabrir",
+  recibido: "Marcar cobrado",
+  aceptado: "Aceptar",
+  entregado: "Marcar entregado",
   cancelado: "Cancelar",
-  rechazado: "Reabrir",
-  reembolsado: "Reembolsar",
+  // Sólo registra el estado: la plata se devuelve desde Mercado Pago (o en
+  // mano). Si la devolución sale por MP, el webhook lo marca solo.
+  reembolsado: "Marcar reembolsado",
 };
 
 export default async function PedidosPage() {
@@ -122,7 +125,11 @@ export default async function PedidosPage() {
                           accion={cambiarEstado}
                           campos={{ pedidoId: p.id, estado: siguiente }}
                           etiqueta={ETIQUETA_ESTADO[siguiente] ?? siguiente}
-                          variante={siguiente === "pagado" ? "normal" : "suave"}
+                          variante={
+                            siguiente === "reembolsado" || siguiente === "cancelado"
+                              ? "suave"
+                              : "normal"
+                          }
                         />
                       ))}
                     </div>
@@ -140,7 +147,8 @@ export default async function PedidosPage() {
 function Estado({ estado }: { estado: string }) {
   const colores: Record<string, string> = {
     pendiente: "border-amber-500/40 bg-amber-500/10",
-    pagado: "border-green-600/40 bg-green-600/10",
+    recibido: "border-sky-600/40 bg-sky-600/10",
+    aceptado: "border-green-600/40 bg-green-600/10",
     entregado: "border-foreground/20 bg-foreground/5",
     rechazado: "border-red-500/40 bg-red-500/10",
     cancelado: "border-foreground/15",

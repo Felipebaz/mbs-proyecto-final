@@ -65,7 +65,7 @@ describe("crearPedido", () => {
     expect(p.total).toBeGreaterThan(1);
   });
 
-  it("nace 'pendiente': sólo el webhook puede pasarlo a pagado", async () => {
+  it("nace 'pendiente': sólo el webhook puede pasarlo a recibido", async () => {
     const { pedido: p } = await crearPedido(
       [{ sku: variante.sku, cantidad: 1 }],
       ENTREGA,

@@ -76,7 +76,7 @@ afterAll(async () => {
 });
 
 describe("pago aprobado", () => {
-  it("marca el pedido como pagado y deja fecha", async () => {
+  it("marca el pedido como recibido y deja fecha", async () => {
     const p = await crearPedidoPendiente();
     const r = await procesarPago(pagoDe(p.referencia));
 
@@ -84,7 +84,7 @@ describe("pago aprobado", () => {
     if (r.ok) expect(r.accion).toBe("aplicado");
 
     const [despues] = await db.select().from(pedido).where(eq(pedido.id, p.id));
-    expect(despues.estado).toBe("pagado");
+    expect(despues.estado).toBe("recibido");
     expect(despues.pagadoEn).not.toBeNull();
   });
 
@@ -114,7 +114,7 @@ describe("idempotencia", () => {
     expect(primera.ok && primera.accion).toBe("aplicado");
     expect(segunda.ok && segunda.accion).toBe("sin-cambios");
     expect(await db.select().from(pago)).toHaveLength(1);
-    expect(await estadoDe(p.id)).toBe("pagado");
+    expect(await estadoDe(p.id)).toBe("recibido");
   });
 
   it("dos notificaciones simultáneas: una sola aplica", async () => {
@@ -131,7 +131,7 @@ describe("idempotencia", () => {
     expect(await db.select().from(pago)).toHaveLength(1);
   });
 
-  it("un aviso viejo de 'pendiente' no pisa un pedido ya pagado", async () => {
+  it("un aviso viejo de 'pendiente' no pisa un pedido ya recibido", async () => {
     const p = await crearPedidoPendiente();
     await procesarPago(pagoDe(p.referencia));
 
@@ -141,7 +141,7 @@ describe("idempotencia", () => {
 
     // Las notificaciones pueden llegar desordenadas. Un pedido pagado no
     // vuelve a pendiente porque llegó tarde un aviso viejo.
-    expect(await estadoDe(p.id)).toBe("pagado");
+    expect(await estadoDe(p.id)).toBe("recibido");
   });
 });
 
@@ -237,7 +237,7 @@ describe("otros estados", () => {
     expect(await estadoDe(p.id)).toBe("rechazado");
   });
 
-  it("un rechazado puede pasar a pagado si reintenta", async () => {
+  it("un rechazado puede pasar a recibido si reintenta", async () => {
     const p = await crearPedidoPendiente();
     await procesarPago(
       pagoDe(p.referencia, { idPago: "mp-fallo", estado: "rechazado", estadoCrudo: "rejected" }),
@@ -245,12 +245,24 @@ describe("otros estados", () => {
 
     // La persona reintenta con otra tarjeta: el pedido tiene que poder cobrarse.
     await procesarPago(pagoDe(p.referencia, { idPago: "mp-ok" }));
-    expect(await estadoDe(p.id)).toBe("pagado");
+    expect(await estadoDe(p.id)).toBe("recibido");
   });
 
-  it("'refunded' sobre un pedido pagado lo marca reembolsado", async () => {
+  it("'refunded' sobre un pedido recibido lo marca reembolsado", async () => {
     const p = await crearPedidoPendiente();
     await procesarPago(pagoDe(p.referencia));
+
+    await procesarPago(
+      pagoDe(p.referencia, { estado: "reembolsado", estadoCrudo: "refunded" }),
+    );
+    expect(await estadoDe(p.id)).toBe("reembolsado");
+  });
+
+  it("'refunded' sobre un pedido ya aceptado también lo marca reembolsado", async () => {
+    const p = await crearPedidoPendiente();
+    await procesarPago(pagoDe(p.referencia));
+    // El admin lo aceptó; después se devolvió la plata desde Mercado Pago.
+    await db.update(pedido).set({ estado: "aceptado" }).where(eq(pedido.id, p.id));
 
     await procesarPago(
       pagoDe(p.referencia, { estado: "reembolsado", estadoCrudo: "refunded" }),

@@ -25,6 +25,15 @@ updates:
         update-types: ["version-update:semver-major"]
       - dependency-name: react-dom
         update-types: ["version-update:semver-major"]
+      # eslint 10 quitó context.getFilename() y eslint-plugin-react (que trae
+      # eslint-config-next) todavía lo usa: el lint revienta. Sacar cuando
+      # eslint-config-next soporte eslint 10.
+      - dependency-name: eslint
+        update-types: ["version-update:semver-major"]
+      # Los tipos tienen que coincidir con el Node del runtime (24 en CI y
+      # Vercel). Con tipos más nuevos TypeScript acepta APIs que no existen.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
 
     commit-message:
       prefix: "chore(deps)"

@@ -136,7 +136,7 @@ const ACCIONES: readonly {
   {
     nombre: "cambiarEstado",
     correr: () =>
-      acciones.cambiarEstado(undefined, form({ pedidoId: crypto.randomUUID(), estado: "pagado" })),
+      acciones.cambiarEstado(undefined, form({ pedidoId: crypto.randomUUID(), estado: "recibido" })),
   },
   {
     nombre: "crearPedidoManual",

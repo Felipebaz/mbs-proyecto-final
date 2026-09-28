@@ -22,7 +22,7 @@ const {
 
 const db = entorno.db;
 
-async function crear(estado: "pendiente" | "pagado" | "entregado" | "rechazado") {
+async function crear(estado: "pendiente" | "recibido" | "aceptado" | "entregado" | "rechazado") {
   const [p] = await db
     .insert(pedido)
     .values({
@@ -62,8 +62,16 @@ afterAll(async () => {
 });
 
 describe("transicionesDe", () => {
-  it("un pendiente puede pagarse o cancelarse", () => {
-    expect(transicionesDe("pendiente")).toEqual(["pagado", "cancelado"]);
+  it("un pendiente puede cobrarse o cancelarse", () => {
+    expect(transicionesDe("pendiente")).toEqual(["recibido", "cancelado"]);
+  });
+
+  it("un recibido no se cancela: ya hay plata, se devuelve", () => {
+    expect(transicionesDe("recibido")).toEqual(["aceptado", "reembolsado"]);
+  });
+
+  it("un aceptado se entrega o se devuelve el pago", () => {
+    expect(transicionesDe("aceptado")).toEqual(["entregado", "reembolsado"]);
   });
 
   it("un cancelado y un reembolsado son finales", () => {
@@ -81,15 +89,15 @@ describe("cambiarEstadoPedido", () => {
   it("aplica una transición válida", async () => {
     const p = await crear("pendiente");
 
-    const cambio = await cambiarEstadoPedido(p.id, "pagado");
+    const cambio = await cambiarEstadoPedido(p.id, "recibido");
 
-    expect(cambio).toEqual({ anterior: "pendiente", nuevo: "pagado" });
-    expect(await estadoDe(p.id)).toBe("pagado");
+    expect(cambio).toEqual({ anterior: "pendiente", nuevo: "recibido" });
+    expect(await estadoDe(p.id)).toBe("recibido");
   });
 
-  it("marca la fecha de pago al pasar a pagado", async () => {
+  it("marca la fecha de pago al pasar a recibido", async () => {
     const p = await crear("pendiente");
-    await cambiarEstadoPedido(p.id, "pagado");
+    await cambiarEstadoPedido(p.id, "recibido");
 
     const [despues] = await db.select().from(pedido).where(eq(pedido.id, p.id));
     expect(despues.pagadoEn).not.toBeNull();
@@ -110,13 +118,13 @@ describe("cambiarEstadoPedido", () => {
   });
 
   it("rechaza pasar al estado en el que ya está", async () => {
-    const p = await crear("pagado");
-    await expect(cambiarEstadoPedido(p.id, "pagado")).rejects.toThrow(/ya está/);
+    const p = await crear("recibido");
+    await expect(cambiarEstadoPedido(p.id, "recibido")).rejects.toThrow(/ya está/);
   });
 
   it("rechaza un pedido que no existe", async () => {
     await expect(
-      cambiarEstadoPedido("00000000-0000-0000-0000-000000000000", "pagado"),
+      cambiarEstadoPedido("00000000-0000-0000-0000-000000000000", "recibido"),
     ).rejects.toThrow(/no existe/);
   });
 
@@ -124,7 +132,7 @@ describe("cambiarEstadoPedido", () => {
     const p = await crear("pendiente");
 
     const [a, b] = await Promise.allSettled([
-      cambiarEstadoPedido(p.id, "pagado"),
+      cambiarEstadoPedido(p.id, "recibido"),
       cambiarEstadoPedido(p.id, "cancelado"),
     ]);
 
@@ -150,7 +158,7 @@ describe("cambiarEstadoPedido", () => {
 describe("listarPedidos", () => {
   it("trae los items de cada pedido sin una consulta por pedido", async () => {
     await crear("pendiente");
-    await crear("pagado");
+    await crear("recibido");
 
     const pedidos = await listarPedidos();
 
@@ -163,11 +171,11 @@ describe("listarPedidos", () => {
 
   it("filtra por estado", async () => {
     await crear("pendiente");
-    await crear("pagado");
+    await crear("recibido");
 
-    const pagados = await listarPedidos({ estados: ["pagado"] });
-    expect(pagados).toHaveLength(1);
-    expect(pagados[0].estado).toBe("pagado");
+    const recibidos = await listarPedidos({ estados: ["recibido"] });
+    expect(recibidos).toHaveLength(1);
+    expect(recibidos[0].estado).toBe("recibido");
   });
 
   it("topea el límite aunque se pida más", async () => {
@@ -185,7 +193,7 @@ describe("resumenPedidos", () => {
   it("cuenta y suma por estado", async () => {
     await crear("pendiente");
     await crear("pendiente");
-    await crear("pagado");
+    await crear("recibido");
 
     const resumen = await resumenPedidos();
     const pendientes = resumen.find((r) => r.estado === "pendiente");
