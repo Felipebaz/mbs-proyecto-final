@@ -36,8 +36,12 @@ describe("cifrar y descifrar", () => {
     const paquete = cifrar("JBSWY3DPEHPK3PXP");
     const [iv, cifrado, tag] = paquete.split(".");
 
-    // Se cambia un byte del cuerpo dejando iv y tag intactos.
-    const alterado = [iv, "X" + cifrado.slice(1), tag].join(".");
+    // Se cambia un byte del cuerpo dejando iv y tag intactos. Con XOR y no
+    // pisando un carácter: si el cifrado ya empezaba con ese carácter (1 de
+    // cada 64 corridas), el "cambio" no cambiaba nada y el test fallaba.
+    const bytes = Buffer.from(cifrado, "base64url");
+    bytes[0] ^= 0x01;
+    const alterado = [iv, bytes.toString("base64url"), tag].join(".");
 
     /*
      * Esto es lo que aporta GCM sobre CBC: alguien que pueda escribir en la
