@@ -17,7 +17,7 @@ import { costoDe, type CostoSku } from "./recetas";
  */
 
 /** Estados que cuentan como venta concretada. */
-const ESTADOS_VENDIDOS = ["pagado", "entregado"] as const;
+const ESTADOS_VENDIDOS = ["recibido", "aceptado", "entregado"] as const;
 
 export interface RentabilidadSku {
   sku: string;

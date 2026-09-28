@@ -30,7 +30,7 @@ export default async function NuevoPedidoPage() {
       <h1 className="font-display text-3xl">Cargar pedido</h1>
       <p className="mt-2 text-sm text-muted">
         Para los que llegan por WhatsApp o por teléfono. Queda pendiente de pago;
-        cuando cobres, lo marcás pagado desde la lista.
+        cuando cobres, lo marcás cobrado desde la lista.
       </p>
 
       <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_280px]">

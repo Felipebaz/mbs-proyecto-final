@@ -8,7 +8,7 @@ import type { EstadoConsultado } from "@/lib/pagos";
 /**
  * Aplica al pedido lo que el proveedor dice que pasó con el pago.
  *
- * Esta función es la única que puede mover un pedido a `pagado`. No la llama la
+ * Esta función es la única que puede mover un pedido web a `recibido`. No la llama la
  * página de retorno del cliente: esa URL la abre cualquiera, y confiar en ella
  * sería regalar los jugos a quien sepa la dirección.
  */
@@ -27,7 +27,7 @@ export type MotivoRechazo =
 function estadoPedidoPara(estado: EstadoConsultado["estado"]) {
   switch (estado) {
     case "aprobado":
-      return "pagado" as const;
+      return "recibido" as const;
     case "rechazado":
       return "rechazado" as const;
     case "reembolsado":
@@ -147,14 +147,14 @@ export async function procesarPago(
      */
     const desde =
       estadoNuevo === "reembolsado"
-        ? ["pagado", "entregado"]
+        ? ["recibido", "aceptado", "entregado"]
         : ["pendiente", "rechazado"];
 
     const actualizados = await tx
       .update(pedido)
       .set({
         estado: estadoNuevo,
-        ...(estadoNuevo === "pagado" ? { pagadoEn: new Date() } : {}),
+        ...(estadoNuevo === "recibido" ? { pagadoEn: new Date() } : {}),
       })
       .where(
         and(

@@ -265,13 +265,23 @@ export type OrigenPedido = (typeof ORIGENES_PEDIDO)[number];
 /**
  * Estados del pedido.
  *
+ * Camino normal: pendiente → recibido → aceptado → entregado.
+ *
  * `pendiente` es el estado inicial: el pedido existe pero nadie pagó. Sólo el
- * webhook, después de consultarle a Mercado Pago, puede moverlo a `pagado`.
- * La página de retorno del cliente NO puede: cualquiera puede abrir esa URL.
+ * webhook, después de consultarle a Mercado Pago, puede moverlo a `recibido`
+ * (o el admin, para un pedido manual que cobró en mano). La página de retorno
+ * del cliente NO puede: cualquiera puede abrir esa URL.
+ *
+ * `aceptado` lo pone el admin cuando confirma que lo va a producir: Anima no
+ * tiene stock, así que entre recibir el pago y comprometerse a entregar hay
+ * una decisión humana (hay fruta, la zona se reparte).
+ *
+ * `rechazado` es el pago que Mercado Pago no aprobó, no una decisión de Anima.
  */
 export const ESTADOS_PEDIDO = [
   "pendiente",
-  "pagado",
+  "recibido",
+  "aceptado",
   "rechazado",
   "cancelado",
   "reembolsado",
@@ -329,7 +339,7 @@ export const pedido = pgTable(
     check("pedido_total_no_negativo", sql`${t.total} >= 0`),
     check(
       "pedido_estado",
-      sql`${t.estado} in ('pendiente','pagado','rechazado','cancelado','reembolsado','entregado')`,
+      sql`${t.estado} in ('pendiente','recibido','aceptado','rechazado','cancelado','reembolsado','entregado')`,
     ),
     check("pedido_origen", sql`${t.origen} in ('web','manual')`),
   ],
